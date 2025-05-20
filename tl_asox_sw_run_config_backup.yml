@@ -19,25 +19,18 @@
     ansible_network_os: arubanetworks.aoscx.aoscx
     tftp_server: "10.70.128.32"
   tasks:
-    - name: Ping TFTP server via mgmt VRF
-      aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf mgmt"
-      register: ping_mgmt
-      ignore_errors: yes
-      changed_when: false
-
-    - name: Determine which VRF to use
+    - name: Determine VRF based on device type
       set_fact:
         target_vrf: >-
-          {% if ping_mgmt is success and '2 packets transmitted, 2 received' in ping_mgmt.stdout[0] %}
-          mgmt
-          {% else %}
+          {% if ansible_network_os == "aoscx_l2" %}
           default
+          {% else %}
+          mgmt
           {% endif %}
 
     - name: Debug selected VRF
       debug:
-        msg: "Using VRF: {{ target_vrf }}"
+        msg: "Device type: {{ ansible_network_os }}, Using VRF: {{ target_vrf }}"
 
     - name: Copy Running Config to NAS storage
       aoscx_backup_config:
