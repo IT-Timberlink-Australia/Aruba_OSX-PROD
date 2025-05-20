@@ -7,6 +7,8 @@
   
   vars:
     tftp_server: "10.70.128.32"
+    ansible_connection: arubanetworks.aoscx.aoscx
+    ansible_network_os: arubanetworks.aoscx.aoscx
   
   tasks:
     # Get timestamp
@@ -22,13 +24,13 @@
       set_fact:
         DTG: "{{ datetime.ansible_facts.ansible_date_time.date }}"
 
-    # Determine VRF from platforms variable
+    # Determine VRF from platforms list
     - name: Set VRF based on platforms value
       set_fact:
         target_vrf: >-
-          {% if platforms is defined and platforms == "aoscx_l2" %}
+          {% if platforms is defined and 'aoscx_l2' in platforms %}
           default
-          {% elif platforms is defined and platforms == "aoscx" %}
+          {% elif platforms is defined and 'aoscx' in platforms %}
           mgmt
           {% else %}
           default
