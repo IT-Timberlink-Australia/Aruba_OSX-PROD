@@ -1,30 +1,23 @@
 ---
-- name: Backup Running Config using Inventory Platforms Variable
-  hosts: all
-  gather_facts: false
-  collections:
-    - arubanetworks.aoscx
-  
-  vars:
-    tftp_server: "10.70.128.32"
-    ansible_connection: arubanetworks.aoscx.aoscx
-    ansible_network_os: arubanetworks.aoscx.aoscx
-  
+- name: Copy Running Config to NAS storage with dtm
+  hosts: localhost
   tasks:
-    # Get timestamp
-    - name: Get current date
-      run_once: true
-      delegate_to: localhost
+    - name: Get ansible date/time facts
       setup:
         filter: "ansible_date_time"
         gather_subset: "!all"
-      register: datetime
-
-    - name: Set DTG fact
+    - name: Store DTG as fact
       set_fact:
-        DTG: "{{ datetime.ansible_facts.ansible_date_time.date }}"
+        DTG: "{{ ansible_date_time.date }}"
 
-    # Determine VRF from platforms list
+- hosts: all
+  gather_facts: false
+  collections:
+      - arubanetworks.aoscx
+  vars:
+    ansible_connection: arubanetworks.aoscx.aoscx
+    ansible_network_os: arubanetworks.aoscx.aoscx
+  tasks:
     - name: Set VRF based on platforms value
       set_fact:
         target_vrf: >-
@@ -35,16 +28,12 @@
           {% else %}
           default
           {% endif %}
-
-    # Debug output
     - name: Show platforms value and VRF selection
       debug:
         msg: "Host {{ inventory_hostname }} - Platforms: {{ platforms | default('undefined') }}, Using VRF: {{ target_vrf }}"
-
-    # Execute backup
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/run_config/{{ inventory_hostname }}_{{DTG}}_runconfig.cli'
+        remote_output_file_tftp_path: 'tftp://10.70.128.32/run_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
         config_type: 'cli'
         vrf: "{{ target_vrf }}"
