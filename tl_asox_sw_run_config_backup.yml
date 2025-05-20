@@ -17,20 +17,41 @@
   vars:
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
+    tftp_server: "10.70.128.32"
   tasks:
-    - name: Check available VRFs
+    - name: Ping TFTP server via default VRF
       aoscx_command:
-        commands: "show vrf"
-      register: vrf_output
+        commands: "ping vrf default {{ tftp_server }} count 2"
+      register: ping_default
       ignore_errors: yes
-    
-    - name: Set VRF based on available VRFs
+      changed_when: false
+
+    - name: Ping TFTP server via mgmt VRF
+      aoscx_command:
+        commands: "ping vrf mgmt {{ tftp_server }} count 2"
+      register: ping_mgmt
+      ignore_errors: yes
+      changed_when: false
+      when: "'% Unknown command' not in ping_default.stderr|default('')"
+
+    - name: Determine which VRF to use
       set_fact:
-        target_vrf: "{% if 'mgmt' in vrf_output.stdout[0] %}mgmt{% else %}default{% endif %}"
-    
+        target_vrf: >-
+          {% if ping_default is success and '64 bytes from' in ping_default.stdout[0] %}
+          default
+          {% elif ping_mgmt is success and '64 bytes from' in ping_mgmt.stdout[0] %}
+          mgmt
+          {% else %}
+          default
+          {% endif %}
+
+    - name: Debug selected VRF
+      debug:
+        msg: "Using VRF: {{ target_vrf }}"
+
     - name: Copy Running Config to NAS storage
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/run_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
+        remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/run_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
         config_type: 'cli'
         vrf: "{{ target_vrf }}"
