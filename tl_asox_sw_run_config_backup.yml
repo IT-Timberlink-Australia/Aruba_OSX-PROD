@@ -19,27 +19,17 @@
     ansible_network_os: arubanetworks.aoscx.aoscx
     tftp_server: "10.70.128.32"
   tasks:
-    - name: Ping TFTP server via default VRF
-      aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf default"
-      register: ping_default
-      ignore_errors: yes
-      changed_when: false
-
     - name: Ping TFTP server via mgmt VRF
       aoscx_command:
         commands: "ping {{ tftp_server }} repetitions 2 vrf mgmt"
       register: ping_mgmt
       ignore_errors: yes
       changed_when: false
-      when: "'ping4: connect: Network is unreachable' not in ping_default.stderr|default('')"
 
     - name: Determine which VRF to use
       set_fact:
         target_vrf: >-
-          {% if ping_default is success and '64 bytes from' in ping_default.stdout[0] %}
-          default
-          {% elif ping_mgmt is success and '64 bytes from' in ping_mgmt.stdout[0] %}
+          {% if ping_mgmt is success and '64 bytes from' in ping_mgmt.stdout[0] %}
           mgmt
           {% else %}
           default
