@@ -1,0 +1,8 @@
+---
+- name: Diagnostic Playbook - Check ansible_network_os
+  hosts: all
+  gather_facts: false
+  tasks:
+    - name: Display ansible_network_os value
+      debug:
+        msg: "Host {{ inventory_hostname }} has ansible_network_os = {{ ansible_network_os | default('NOT SET') }}"
