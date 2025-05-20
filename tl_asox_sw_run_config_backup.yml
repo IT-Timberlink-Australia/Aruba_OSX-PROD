@@ -18,16 +18,15 @@
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
   tasks:
-    - name: Check if TFTP server is reachable via default VRF
-      aoscx_ping:
-        vrf: "default"
-        dest: "10.70.128.32"
-      register: ping_result
+    - name: Check available VRFs
+      aoscx_command:
+        commands: "show vrf"
+      register: vrf_output
       ignore_errors: yes
     
-    - name: Set VRF based on ping result
+    - name: Set VRF based on available VRFs
       set_fact:
-        target_vrf: "{% if ping_result is success and ping_result.reachable %}default{% else %}mgmt{% endif %}"
+        target_vrf: "{% if 'mgmt' in vrf_output.stdout[0] %}mgmt{% else %}default{% endif %}"
     
     - name: Copy Running Config to NAS storage
       aoscx_backup_config:
