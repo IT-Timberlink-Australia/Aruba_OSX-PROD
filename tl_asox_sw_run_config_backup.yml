@@ -29,7 +29,7 @@
     - name: Determine which VRF to use
       set_fact:
         target_vrf: >-
-          {% if ping_mgmt is success and '64 bytes from' in ping_mgmt.stdout[0] %}
+          {% if ping_mgmt is success and '2 packets transmitted, 2 received' in ping_mgmt.stdout[0] %}
           mgmt
           {% else %}
           default
