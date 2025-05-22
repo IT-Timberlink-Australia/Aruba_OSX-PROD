@@ -30,10 +30,10 @@
           {% endif %}
     - name: Show platforms value and VRF selection
       debug:
-        msg: "Host {{ inventory_hostname }} - Platforms: {{ platforms | default('undefined') }}, Using VRF: {{ target_vrf }}"
+        msg: "Host {{inventory_hostname}} - Platforms: {{ platforms | default('undefined') }}, Using VRF: {{target_vrf}}"
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
         remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
         config_type: 'cli'
-        vrf: '{{ target_vrf }}'
+        vrf: '{{target_vrf}}'
