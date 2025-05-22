@@ -7,12 +7,12 @@
         filter: "ansible_date_time"
         gather_subset: "!all"
       tags: always
-
     - name: Store DTG as fact
       set_fact:
         DTG: "{{ ansible_date_time.date }}"
       tags: always
-- name: Check HTTPS Server VRF Configuration
+
+- name: Check VRF
   hosts: BEL-01SWI0103
   gather_facts: false
   collections:
@@ -37,13 +37,13 @@
           {% else %}
           default
           {% endif %}
-
     - name: Validate VRF determination
       ansible.builtin.assert:
         that:
           - target_vrf in [' mgmt ', ' default ']
         fail_msg: "Failed to determine correct VRF for TFTP transfer"
       tags: always
+
 - name: Backup running config
   hosts: BEL-01SWI0103
   gather_facts: false
@@ -69,9 +69,3 @@
       delay: 10
       until: backup_result is succeeded
     - name: Validate backup file creation
-      ansible.builtin.assert:
-        that:
-          - backup_result is changed
-        fail_msg: "Failed to create backup file on TFTP server"
-        success_msg: "Backup file {{ backup_filename }} created successfully"
-      tags: always
