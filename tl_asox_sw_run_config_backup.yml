@@ -71,12 +71,13 @@
     - name: Create backup filename
       set_fact:
         backup_filename: "{{ inventory_hostname }}_{{ hostvars.localhost.DTG }}_runconfig.cli"
-        delegate_to: localhost
-        
+      delegate_to: localhost
+      run_once: true
+
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ hostvars.localhost.backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
