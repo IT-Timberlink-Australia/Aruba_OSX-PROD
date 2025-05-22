@@ -33,6 +33,17 @@
           {% else %}
           default
           {% endif %}
+          
+- name: Backup running config
+  hosts: all
+  gather_facts: false
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_connection: arubanetworks.aoscx.aoscx
+    ansible_network_os: arubanetworks.aoscx.aoscx
+    ansible_python_interpreter: /usr/bin/python3
+  tasks:
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
