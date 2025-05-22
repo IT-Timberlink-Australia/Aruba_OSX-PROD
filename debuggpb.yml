@@ -22,6 +22,9 @@
           {% else %}
           default
           {% endif %}
-    - name: Display result
-      debug:
-        msg: "HTTPS server is configured for VRF {{ https_vrf }}"
+    - name: Backup running config
+      aoscx_backup_config:
+        config_name: 'running-config'
+        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
+        config_type: 'cli'
+        vrf: "{{target_vrf | trim }}"
