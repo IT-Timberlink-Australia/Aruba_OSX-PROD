@@ -6,7 +6,7 @@
     - arubanetworks.aoscx
   tasks:
     - name: Check for HTTPS server configuration
-      arubanetworks.aoscx.command:
+      aoscx_command:
         commands: "show running-config | include https-server"
       register: https_config
       changed_when: false
