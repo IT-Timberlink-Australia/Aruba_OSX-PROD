@@ -17,6 +17,7 @@
   vars:
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
+    tftp_server: "10.70.128.32"
   tasks:
     - name: Ping TFTP server via mgmt VRF
       aoscx_command:
@@ -39,6 +40,6 @@
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
+        remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
         config_type: 'cli'
         vrf: "{{target_vrf | trim }}"
