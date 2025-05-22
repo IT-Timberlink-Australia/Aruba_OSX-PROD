@@ -6,10 +6,9 @@
     - arubanetworks.aoscx
 
   tasks:
-    # Gather VRF resources from devices
     - name: Gather VRF network resources
-      arubanetworks.aoscx.gather_network_resources:
-        gather_subset:
+      aoscx_facts:
+        gather_network_resources:
           - vrfs
       register: network_resources
 
