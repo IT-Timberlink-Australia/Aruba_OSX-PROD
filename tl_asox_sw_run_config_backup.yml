@@ -57,7 +57,7 @@
     - name: Validate VRF determination
       ansible.builtin.assert:
         that:
-          - target_vrf in ['mgmt', 'default']
+          - target_vrf in [' mgmt ', ' default ']
         fail_msg: "Failed to determine correct VRF for TFTP transfer"
       tags: always
 
