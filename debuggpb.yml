@@ -4,6 +4,8 @@
   gather_facts: false
   collections:
     - arubanetworks.aoscx
+  roles:
+    - role: aoscx-ansible-role
   vars:
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
