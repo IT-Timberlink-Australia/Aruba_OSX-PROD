@@ -31,7 +31,7 @@
 
     - name: Ping TFTP server via mgmt VRF
       aoscx_command:
-        commands: "ping {{ hostvars['localhost']['global_tftp_server'] }} repetitions {{ hostvars['localhost']['global_ping_repetitions'] }} vrf mgmt"
+        commands: "ping {{ hostvars['localhost']['tftp_server'] }} repetitions {{ hostvars['localhost']['ping_repetitions'] }} vrf mgmt"
       register: ping_mgmt
       ignore_errors: yes
       changed_when: false
@@ -54,7 +54,7 @@
 
     - name: Validate TFTP server reachability
       fail:
-        msg: "Cannot reach TFTP server {{ hostvars['localhost']['global_tftp_server'] }} via either default or mgmt VRF"
+        msg: "Cannot reach TFTP server {{ hostvars['localhost']['tftp_server'] }} via either default or mgmt VRF"
       when: >-
         (ping_default is failed or 'bytes from' not in ping_default.stdout[0]|default('')) and
         (ping_mgmt is failed or 'bytes from' not in ping_mgmt.stdout[0]|default(''))
@@ -76,7 +76,7 @@
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://{{ hostvars["localhost"]["global_tftp_server"] }}/{{ hostvars["localhost"]["global_tftp_directory"] }}/{{ backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://{{ hostvars["localhost"]["tftp_server"] }}/{{ hostvars["localhost"]["tftp_directory"] }}/{{ backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
