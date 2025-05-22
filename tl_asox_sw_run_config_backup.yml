@@ -17,6 +17,7 @@
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
     tftp_server: "10.70.128.32"
+    ansible_command_timeout: 60
   tasks:
     - name: Ping TFTP server via default VRF
       aoscx_command:
