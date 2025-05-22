@@ -14,7 +14,7 @@
       tags: always
 
 - name: Check VRF Ping TFTP Server
-  hosts: all
+  hosts: BEL-01SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
@@ -60,7 +60,7 @@
         (ping_mgmt is failed or 'bytes from' not in ping_mgmt.stdout[0]|default(''))
 
 - name: Backup running config
-  hosts: all
+  hosts: BEL-01SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
