@@ -1,6 +1,9 @@
 ---
 - name: Initialize and gather required facts
   hosts: localhost
+  vars:
+    tftp_server: "10.70.128.32"  # Moved to vars section for easier modification
+    tftp_directory: "running_config"  # Added TFTP directory as variable
   tasks:
     - name: Get ansible date/time facts
       setup:
@@ -20,33 +23,44 @@
   vars:
     ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
-    tftp_server: "10.70.128.32"
+    ping_repetitions: 2  # Added as variable for flexibility
   tasks:
     - name: Ping TFTP server via default VRF
       aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf default"
+        commands: "ping {{ hostvars.localhost.tftp_server }} repetitions {{ ping_repetitions }} vrf default"
       register: ping_default
       ignore_errors: yes
       changed_when: false
 
     - name: Ping TFTP server via mgmt VRF
       aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf mgmt"
+        commands: "ping {{ hostvars.localhost.tftp_server }} repetitions {{ ping_repetitions }} vrf mgmt"
       register: ping_mgmt
       ignore_errors: yes
       changed_when: false
-      when: "'ping4: connect: Network is unreachable' not in ping_default.stderr|default('')"
+      when: >-
+        ping_default is failed or 
+        ('100% packet loss' in ping_default.stdout[0] or
+         'Network is unreachable' in ping_default.stdout[0] or
+         'ping4: connect' in ping_default.stderr|default(''))
 
     - name: Determine which VRF to use
       set_fact:
         target_vrf: >-
           {% if ping_default is success and 'bytes from' in ping_default.stdout[0] %}
-          default
+            default
           {% elif ping_mgmt is success and 'bytes from' in ping_mgmt.stdout[0] %}
-          mgmt
+            mgmt
           {% else %}
-          default
+            default  # Fallback to default if neither works
           {% endif %}
+
+    - name: Validate TFTP server reachability
+      fail:
+        msg: "Cannot reach TFTP server {{ hostvars.localhost.tftp_server }} via either default or mgmt VRF"
+      when: >-
+        (ping_default is failed or 'bytes from' not in ping_default.stdout[0]|default('')) and
+        (ping_mgmt is failed or 'bytes from' not in ping_mgmt.stdout[0]|default(''))
 
 - name: Backup running config
   hosts: BEL-01SWI0103
@@ -61,13 +75,20 @@
     - name: Create backup filename
       set_fact:
         backup_filename: "{{ inventory_hostname }}_{{ hostvars.localhost.DTG }}_runconfig.cli"
+    
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://{{ hostvars.localhost.tftp_server }}/{{ hostvars.localhost.tftp_directory }}/{{ backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
       retries: 3
       delay: 10
       until: backup_result is succeeded
+      ignore_errors: yes  # Added to ensure play continues even if backup fails
+
+    - name: Validate backup completion
+      fail:
+        msg: "Failed to backup configuration after 3 attempts"
+      when: backup_result is failed
