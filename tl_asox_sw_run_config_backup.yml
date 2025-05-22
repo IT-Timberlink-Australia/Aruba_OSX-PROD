@@ -68,7 +68,6 @@
     tftp_directory: 'running_config'
     email_notification: 'cjones@timberlinkaustralia.com.au'
     backup_retention_days: 30  # For future cleanup tasks
-  
   tasks:
     - name: Create backup filename
       set_fact:
