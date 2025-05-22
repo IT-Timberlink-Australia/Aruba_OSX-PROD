@@ -12,35 +12,41 @@
         DTG: "{{ ansible_date_time.date }}"
       tags: always
 
-- name: Check VRF
+- name: Check VRF Ping TFTP Server
   hosts: all
-  gather_facts: false
+  gather_facts: False
   collections:
     - arubanetworks.aoscx
   vars:
     ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
+    tftp_server: "10.70.128.32"
   tasks:
-    - name: Check for HTTPS server configuration
+    - name: Ping TFTP server via default VRF
       aoscx_command:
-        commands: "show running-config | include https-server"
-      register: https_config
-      changed_when: false
+        commands: "ping {{ tftp_server }} repetitions 2 vrf default"
+      register: ping_default
       ignore_errors: yes
-    - name: Determine VRF configuration
+      changed_when: false
+
+    - name: Ping TFTP server via mgmt VRF
+      aoscx_command:
+        commands: "ping {{ tftp_server }} repetitions 2 vrf mgmt"
+      register: ping_mgmt
+      ignore_errors: yes
+      changed_when: false
+      when: "'ping4: connect: Network is unreachable' not in ping_default.stderr|default('')"
+
+    - name: Determine which VRF to use
       set_fact:
         target_vrf: >-
-          {% if 'https-server vrf mgmt' in https_config.stdout[0] %}
+          {% if ping_default is success and 'bytes from' in ping_default.stdout[0] %}
+          default
+          {% elif ping_mgmt is success and 'bytes from' in ping_mgmt.stdout[0] %}
           mgmt
           {% else %}
           default
           {% endif %}
-    - name: Validate VRF determination
-      ansible.builtin.assert:
-        that:
-          - target_vrf in [' mgmt ', ' default ']
-        fail_msg: "Failed to determine correct VRF for TFTP transfer"
-      tags: always
 
 - name: Backup running config
   hosts: all
