@@ -1,8 +1,32 @@
 ---
-- name: Diagnostic Playbook - Check ansible_network_os
-  hosts: all
+- name: Gather VRF information and backup configurations
+  hosts: aruba_switches
   gather_facts: false
+  collections:
+    - arubanetworks.aoscx
+
   tasks:
-    - name: Display ansible_network_os value
+    # Gather VRF resources from devices
+    - name: Gather VRF network resources
+      arubanetworks.aoscx.gather_network_resources:
+        gather_subset:
+          - vrfs
+      register: network_resources
+
+    - name: Display gathered VRF information
       debug:
-        msg: "Host {{ inventory_hostname }} has ansible_network_os = {{ ansible_network_os | default('NOT SET') }}"
+        var: network_resources.vrfs
+
+    - name: Set default VRF fact
+      set_fact:
+        available_vrfs: "{{ network_resources.vrfs|map(attribute='name')|list }}"
+      when: network_resources.vrfs is defined
+
+    - name: Set fallback VRF fact if none gathered
+      set_fact:
+        available_vrfs: ['default', 'mgmt']
+      when: network_resources.vrfs is not defined or network_resources.vrfs|length == 0
+
+    - name: Debug available VRFs
+      debug:
+        var: available_vrfs
