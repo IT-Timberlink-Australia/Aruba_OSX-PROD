@@ -20,17 +20,16 @@
   tasks:
     - name: Ping TFTP server via default VRF
       aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf default"
+        commands: "ping vrf default {{ tftp_server }} count 2"
       register: ping_default
       ignore_errors: yes
       changed_when: false
     - name: Ping TFTP server via mgmt VRF
       aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf mgmt"
+        commands: "ping vrf mgmt {{ tftp_server }} count 2"
       register: ping_mgmt
       ignore_errors: yes
       changed_when: false
-      when: "'ping4: connect: Network is unreachable' not in ping_default.stderr|default('')"
     - name: Determine which VRF to use
       set_fact:
         target_vrf: >-
