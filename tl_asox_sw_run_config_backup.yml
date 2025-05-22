@@ -78,12 +78,12 @@
   tasks:
     - name: Create backup filename
       set_fact:
-        backup_filename: "{{ inventory_hostname }}_{{ hostvars.localhost.DTG }}_runconfig.cli"
+        backup_filename: "{{ inventory_hostname }}_{{ DTG }}_runconfig.cli"
 
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://{{ hostvars.localhost.tftp_server }}/{{ hostvars.localhost.tftp_directory }}/{{ backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/{{ tftp_directory }}/{{ backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
@@ -105,7 +105,7 @@
       community.general.mail:
         host: "smtp.timberlinkaustralia.com.au"
         port: 25
-        to: "{{ hostvars.localhost.email_notification }}"
+        to: "{{ email_notification }}"
         subject: "Backup Status for {{ inventory_hostname }}"
         body: |-
           Backup operation completed with status: {{ backup_result is succeeded | ternary('SUCCESS', 'FAILURE') }}
@@ -114,7 +114,7 @@
           - Device: {{ inventory_hostname }}
           - Backup File: {{ backup_filename }}
           - VRF Used: {{ target_vrf }}
-          - TFTP Server: {{ hostvars.localhost.tftp_server }}
+          - TFTP Server: {{ tftp_server }}
           - Timestamp: {{ ansible_date_time.iso8601 }}
           
           {% if backup_result is failed %}
