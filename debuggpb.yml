@@ -27,7 +27,7 @@
       changed_when: false
     - name: Determine VRF configuration
       set_fact:
-        https_vrf: >-
+        target_vrf: >-
           {% if 'https-server vrf mgmt' in https_config.stdout[0] %}
           mgmt
           {% else %}
