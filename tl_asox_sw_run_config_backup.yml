@@ -12,7 +12,7 @@
 - hosts: all
   gather_facts: false
   collections:
-      - arubanetworks.aoscx
+    - arubanetworks.aoscx
   vars:
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
