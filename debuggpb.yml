@@ -50,3 +50,7 @@
         remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
         config_type: 'cli'
         vrf: "{{target_vrf | trim }}"
+      register: backup_result
+      retries: 3
+      delay: 10
+      until: backup_result is succeeded
