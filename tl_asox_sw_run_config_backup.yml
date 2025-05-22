@@ -27,21 +27,6 @@
         DTG: "{{ ansible_date_time.date }}"
       tags: always
 
-    - name: Verify TFTP server reachability
-      ansible.builtin.command: ping -c 3 {{ tftp_server }}
-      register: ping_result
-      ignore_errors: yes
-      changed_when: false
-      tags: always
-
-    - name: Validate TFTP server availability
-      ansible.builtin.assert:
-        that:
-          - ping_result.rc == 0
-        fail_msg: "TFTP server {{ tftp_server }} is not reachable"
-        success_msg: "TFTP server {{ tftp_server }} is reachable"
-      tags: always
-
 - name: Check HTTPS Server VRF Configuration
   hosts: all
   gather_facts: false
