@@ -20,13 +20,13 @@
   tasks:
     - name: Ping TFTP server via default VRF
       aoscx_command:
-        commands: "ping vrf default {{ tftp_server }} count 2"
+        commands: "ping {{ tftp_server }} vrf default repetitions 4"
       register: ping_default
       ignore_errors: yes
       changed_when: false
     - name: Ping TFTP server via mgmt VRF
       aoscx_command:
-        commands: "ping vrf mgmt {{ tftp_server }} count 2"
+        commands: "ping {{ tftp_server }} vrf mgmt repetitions 4"
       register: ping_mgmt
       ignore_errors: yes
       changed_when: false
