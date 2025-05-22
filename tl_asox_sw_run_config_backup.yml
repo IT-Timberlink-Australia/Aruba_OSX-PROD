@@ -1,12 +1,4 @@
 ---
-# Ansible playbook to backup running configurations from Aruba AOS-CX switches
-# Features:
-# - Determines correct VRF for TFTP transfer (mgmt or default)
-# - Creates timestamped backup files
-# - Validates TFTP server reachability
-# - Sends email notification with results
-# - Comprehensive error handling
-
 - name: Initialize and gather required facts
   hosts: localhost
   tasks:
@@ -20,7 +12,6 @@
       set_fact:
         DTG: "{{ ansible_date_time.date }}"
       tags: always
-
 - name: Check HTTPS Server VRF Configuration
   hosts: BEL-01SWI0103
   gather_facts: false
@@ -30,9 +21,7 @@
     ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
     ansible_python_interpreter: /usr/bin/python3
-    email_notification: 'cjones@timberlinkaustralia.com.au'
-    backup_retention_days: 30  # For future cleanup tasks
-  
+    backup_retention_days: 30
   tasks:
     - name: Check for HTTPS server configuration
       aoscx_command:
@@ -40,7 +29,6 @@
       register: https_config
       changed_when: false
       ignore_errors: yes
-
     - name: Determine VRF configuration
       set_fact:
         target_vrf: >-
@@ -56,24 +44,20 @@
           - target_vrf in [' mgmt ', ' default ']
         fail_msg: "Failed to determine correct VRF for TFTP transfer"
       tags: always
-
 - name: Backup running config
   hosts: BEL-01SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
-
   vars:
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
-
   tasks:
     - name: Create backup filename
       set_fact:
         backup_filename: "{{ inventory_hostname }}_{{ hostvars.localhost.DTG }}_runconfig.cli"
       delegate_to: localhost
       run_once: true
-
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
@@ -84,8 +68,6 @@
       retries: 3
       delay: 10
       until: backup_result is succeeded
-      notify: Send backup status email
-
     - name: Validate backup file creation
       ansible.builtin.assert:
         that:
@@ -93,34 +75,3 @@
         fail_msg: "Failed to create backup file on TFTP server"
         success_msg: "Backup file {{ backup_filename }} created successfully"
       tags: always
-
-  handlers:
-    - name: Send backup status email
-      community.general.mail:
-        host: "smtp.timberlinkaustralia.com.au"
-        port: 25
-        to: "{{ hostvars.localhost.email_notification }}"
-        subject: "Backup Status for {{ inventory_hostname }}"
-        body: |-
-          Backup operation completed with status: {{ backup_result is succeeded | ternary('SUCCESS', 'FAILURE') }}
-          
-          Details:
-          - Device: {{ inventory_hostname }}
-          - Backup File: {{ backup_filename }}
-          - VRF Used: {{ target_vrf }}
-          - TFTP Server: {{ tftp_server }}
-          - Timestamp: {{ ansible_date_time.iso8601 }}
-          
-          {% if backup_result is failed %}
-          Error: {{ backup_result.msg }}
-          {% endif %}
-      delegate_to: localhost
-      when: backup_result is defined
-
-- name: Cleanup old backups (placeholder task)
-  hosts: localhost
-  tasks:
-    - name: Future task to cleanup old backups
-      ansible.builtin.debug:
-        msg: "Future task would delete backups older than {{ backup_retention_days }} days here"
-      tags: cleanup
