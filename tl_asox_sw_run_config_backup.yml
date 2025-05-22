@@ -22,7 +22,7 @@
       tags: always
 
 - name: Check HTTPS Server VRF Configuration
-  hosts: all
+  hosts: BEL-01SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
@@ -56,7 +56,7 @@
       tags: always
 
 - name: Backup running config
-  hosts: all
+  hosts: BEL-01SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
@@ -64,9 +64,9 @@
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
     ansible_python_interpreter: /usr/bin/python3
-    tftp_server: "10.70.128.32"
-    tftp_directory: "running_config"
-    email_notification: "cjones@timberlinkaustralia.com.au"
+    tftp_server: '10.70.128.32'
+    tftp_directory: 'running_config'
+    email_notification: 'cjones@timberlinkaustralia.com.au'
     backup_retention_days: 30  # For future cleanup tasks
   
   tasks:
