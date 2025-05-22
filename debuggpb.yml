@@ -5,7 +5,7 @@
   collections:
     - arubanetworks.aoscx
   vars:
-    ansible_connection: arubanetworks.aoscx.aoscx
+    ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
     ansible_python_interpreter: /usr/bin/python3
   tasks:
@@ -14,7 +14,6 @@
         commands: "show running-config | include https-server"
       register: https_config
       changed_when: false
-
     - name: Determine VRF configuration
       set_fact:
         https_vrf: >-
@@ -23,7 +22,6 @@
           {% else %}
           default
           {% endif %}
-
     - name: Display result
       debug:
         msg: "HTTPS server is configured for VRF {{ https_vrf }}"
