@@ -1,4 +1,15 @@
 ---
+- name: Copy Running Config to NAS storage with dtm
+  hosts: localhost
+  tasks:
+    - name: Get ansible date/time facts
+      setup:
+        filter: "ansible_date_time"
+        gather_subset: "!all"
+    - name: Store DTG as fact
+      set_fact:
+        DTG: "{{ ansible_date_time.date }}"
+
 - name: Check HTTPS Server VRF Configuration
   hosts: all
   gather_facts: false
