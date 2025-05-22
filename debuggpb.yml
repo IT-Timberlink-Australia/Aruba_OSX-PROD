@@ -1,34 +1,27 @@
 ---
-- name: Gather VRF information and backup configurations
-  hosts: all
+- name: Check HTTPS Server VRF Configuration
+  hosts: aruba_switches
   gather_facts: false
   collections:
     - arubanetworks.aoscx
 
-  vars:
-    ansible_connection: arubanetworks.aoscx.aoscx
-    ansible_network_os: arubanetworks.aoscx.aoscx
   tasks:
-    - name: Gather VRF network resources
-      aoscx_facts:
-        gather_network_resources:
-          - vrfs
-      register: network_resources
+    - name: Get running configuration
+      arubanetworks.aoscx.show_config:
+        config: "running-config"
+        output: "text"
+      register: running_config
 
-    - name: Display gathered VRF information
-      debug:
-        var: network_resources.vrfs
-
-    - name: Set default VRF fact
+    - name: Check for HTTPS server in mgmt VRF
       set_fact:
-        available_vrfs: "{{ network_resources.vrfs|map(attribute='name')|list }}"
-      when: network_resources.vrfs is defined
+        https_vrf: "mgmt"
+      when: '"https-server vrf mgmt" in running_config.stdout'
 
-    - name: Set fallback VRF fact if none gathered
+    - name: Set default VRF if mgmt not found
       set_fact:
-        available_vrfs: ['default', 'mgmt']
-      when: network_resources.vrfs is not defined or network_resources.vrfs|length == 0
+        https_vrf: "default"
+      when: '"https-server vrf mgmt" not in running_config.stdout'
 
-    - name: Debug available VRFs
+    - name: Display HTTPS VRF configuration
       debug:
-        var: available_vrfs
+        msg: "HTTPS server is configured for VRF {{ https_vrf }}"
