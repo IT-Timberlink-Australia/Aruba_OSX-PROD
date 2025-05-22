@@ -55,8 +55,6 @@
     - name: Create backup filename
       set_fact:
         backup_filename: "{{ inventory_hostname }}_{{ hostvars.localhost.DTG }}_runconfig.cli"
-      delegate_to: localhost
-      run_once: true
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
