@@ -30,8 +30,6 @@
     ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
     ansible_python_interpreter: /usr/bin/python3
-    tftp_server: '10.70.128.32'
-    tftp_directory: 'running_config'
     email_notification: 'cjones@timberlinkaustralia.com.au'
     backup_retention_days: 30  # For future cleanup tasks
   
@@ -64,7 +62,7 @@
   gather_facts: false
   collections:
     - arubanetworks.aoscx
-    
+
   vars:
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
@@ -77,7 +75,7 @@
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://{{ hostvars.localhost.tftp_server }}/{{ hostvars.localhost.tftp_directory }}/{{ hostvars.localhost.backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ hostvars.localhost.backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
