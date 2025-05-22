@@ -4,6 +4,9 @@
   gather_facts: false
   collections:
     - arubanetworks.aoscx
+  vars:
+    ansible_connection: arubanetworks.aoscx.aoscx
+    ansible_network_os: arubanetworks.aoscx.aoscx
   tasks:
     - name: Check for HTTPS server configuration
       aoscx_command:
