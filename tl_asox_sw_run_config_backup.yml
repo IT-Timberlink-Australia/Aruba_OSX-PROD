@@ -60,7 +60,7 @@
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ backup_filename }}_runconfig.cli'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
