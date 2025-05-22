@@ -1,30 +1,32 @@
 ---
-- name: Copy Running Config to NAS storage with dtm
+- name: Initialize and gather required facts
   hosts: localhost
   tasks:
     - name: Get ansible date/time facts
       setup:
         filter: "ansible_date_time"
         gather_subset: "!all"
+      tags: always
     - name: Store DTG as fact
       set_fact:
         DTG: "{{ ansible_date_time.date }}"
+      tags: always
 
-- name: Check HTTPS Server VRF Configuration
-  hosts: BEL-01SWI0103
+- name: Check VRF
+  hosts: BEL01-SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
   vars:
     ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
-    ansible_python_interpreter: /usr/bin/python3
   tasks:
     - name: Check for HTTPS server configuration
       aoscx_command:
         commands: "show running-config | include https-server"
       register: https_config
       changed_when: false
+      ignore_errors: yes
     - name: Determine VRF configuration
       set_fact:
         target_vrf: >-
@@ -33,9 +35,15 @@
           {% else %}
           default
           {% endif %}
+    - name: Validate VRF determination
+      ansible.builtin.assert:
+        that:
+          - target_vrf in [' mgmt ', ' default ']
+        fail_msg: "Failed to determine correct VRF for TFTP transfer"
+      tags: always
 
 - name: Backup running config
-  hosts: BEL-01SWI0103
+  hosts: BEL01-SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
@@ -44,12 +52,15 @@
     ansible_network_os: arubanetworks.aoscx.aoscx
     ansible_python_interpreter: /usr/bin/python3
   tasks:
+    - name: Create backup filename
+      set_fact:
+        backup_filename: "{{ inventory_hostname }}_{{ hostvars.localhost.DTG }}_runconfig.cli"
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
+        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ backup_filename }}'
         config_type: 'cli'
-        vrf: "{{target_vrf | trim }}"
+        vrf: "{{ target_vrf | trim }}"
       register: backup_result
       retries: 3
       delay: 10
