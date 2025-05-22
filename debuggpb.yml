@@ -13,7 +13,7 @@
       tags: always
 
 - name: Check VRF
-  hosts: BEL01-SWI0103
+  hosts: BEL-01SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
@@ -43,7 +43,7 @@
       tags: always
 
 - name: Backup running config
-  hosts: BEL01-SWI0103
+  hosts: BEL-01SWI0103
   gather_facts: false
   collections:
     - arubanetworks.aoscx
