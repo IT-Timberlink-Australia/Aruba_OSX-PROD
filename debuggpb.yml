@@ -1,27 +1,25 @@
 ---
 - name: Check HTTPS Server VRF Configuration
-  hosts: aruba_switches
+  hosts: all
   gather_facts: false
   collections:
     - arubanetworks.aoscx
-
   tasks:
-    - name: Get running configuration
-      arubanetworks.aoscx.show_config:
-        config: "running-config"
-        output: "text"
-      register: running_config
+    - name: Check for HTTPS server configuration
+      arubanetworks.aoscx.command:
+        commands: "show running-config | include https-server"
+      register: https_config
+      changed_when: false
 
-    - name: Check for HTTPS server in mgmt VRF
+    - name: Determine VRF configuration
       set_fact:
-        https_vrf: "mgmt"
-      when: '"https-server vrf mgmt" in running_config.stdout'
+        https_vrf: >-
+          {% if 'https-server vrf mgmt' in https_config.stdout[0] %}
+          mgmt
+          {% else %}
+          default
+          {% endif %}
 
-    - name: Set default VRF if mgmt not found
-      set_fact:
-        https_vrf: "default"
-      when: '"https-server vrf mgmt" not in running_config.stdout'
-
-    - name: Display HTTPS VRF configuration
+    - name: Display result
       debug:
         msg: "HTTPS server is configured for VRF {{ https_vrf }}"
