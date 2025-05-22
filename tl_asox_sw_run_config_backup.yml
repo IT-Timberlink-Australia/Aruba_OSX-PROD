@@ -36,4 +36,4 @@
         config_name: 'running-config'
         remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
         config_type: 'cli'
-        vrf: "{{target_vrf}}"
+        vrf: "{{target_vrf | trim }}"
