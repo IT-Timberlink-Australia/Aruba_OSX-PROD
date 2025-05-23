@@ -12,7 +12,7 @@
         DTG: "{{ ansible_date_time.date }}"
 
 - name: Check VRF Ping TFTP Server
-  hosts: BEL-01SWI0103
+  hosts: all
   gather_facts: false
   collections:
     - arubanetworks.aoscx
@@ -47,7 +47,7 @@
           {% endif %}
 
 - name: Backup running config
-  hosts: BEL-01SWI0103
+  hosts: all
   gather_facts: false
   collections:
     - arubanetworks.aoscx
