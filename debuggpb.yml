@@ -77,27 +77,25 @@
 
     - name: Register backup status
       set_fact:
-        host_backup_status: "{{ {'result': backup_result is succeeded, 'host': inventory_hostname} }}"
+        host_backup_status: 
+          host: "{{ inventory_hostname }}"
+          result: "{{ backup_result is succeeded }}"
       delegate_to: localhost
       run_once: true
 
-- name: Compile results for notifications
+- name: Prepare notification output
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Aggregate backup results
+    - name: Compile backup results
       set_fact:
-        backup_status: >-
-          {% set ns = namespace(results={}) %}
+        notification_backup_results: |
+          Backup Results:
           {% for host in ansible_play_hosts_all %}
-          {% if hostvars[host].host_backup_status is defined %}
-          {% set _ = ns.results.update({hostvars[host].host_backup_status.host: hostvars[host].host_backup_status.result}) %}
-          {% endif %}
+          - {{ host }}: {% if hostvars[host].host_backup_status.result %}✅ SUCCESS{% else %}❌ FAILED{% endif %}
           {% endfor %}
-          {{ ns.results }}
       run_once: true
 
-    - name: Make backup_status available globally
-      set_fact:
-        backup_status: "{{ backup_status }}"
-      register: backup_status_output
+    - name: Debug output (optional)
+      debug:
+        var: notification_backup_results   
