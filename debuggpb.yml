@@ -104,7 +104,7 @@
           {% endfor %}
       run_once: true
 
-    - name: Persist notification result for AWX
+    - name: Save notification result to temporary file
       copy:
         content: "{{ notification_backup_results }}"
         dest: "/tmp/notification_backup_results.txt"
@@ -112,3 +112,14 @@
     - name: Debug output (optional)
       debug:
         var: notification_backup_results
+
+    - name: Send email with backup results
+      community.general.mail:
+        host: smtp.timberlinkaustralia.com.au
+        port: 25
+        from: awx@timberlinkaustralia.com.au
+        to: "{{ email_recipients }}"
+        subject: "AWX Backup Results Notification"
+        body: "{{ notification_backup_results | default('Backup status unavailable') }}"
+        subtype: plain
+      delegate_to: localhost
