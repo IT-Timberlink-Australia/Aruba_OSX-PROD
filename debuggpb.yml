@@ -92,14 +92,15 @@
           {% for host in groups['all'] if 'host_backup_status' in hostvars[host] %}
             {% set _ = results.update({ host: hostvars[host]['host_backup_status']['result'] }) %}
           {% endfor %}
-          {{ results }}
+          {{ results | to_nice_yaml }}
 
     - name: Compile backup results
       set_fact:
         notification_backup_results: |
           Backup Results:
+          {% set statuses = all_backup_statuses | from_yaml %}
           {% for host in groups['all'] %}
-          - {{ host }}: {% if all_backup_statuses.get(host, false) %}✅ SUCCESS{% else %}❌ FAILED{% endif %}
+          - {{ host }}: {% if statuses[host] | default(false) %}✅ SUCCESS{% else %}❌ FAILED{% endif %}
           {% endfor %}
       run_once: true
 
