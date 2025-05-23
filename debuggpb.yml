@@ -6,7 +6,7 @@
       setup:
         filter: "ansible_date_time"
         gather_subset: "!all"
-    
+
     - name: Store DTG as fact
       set_fact:
         DTG: "{{ ansible_date_time.date }}"
@@ -85,15 +85,24 @@
   hosts: localhost
   gather_facts: false
   tasks:
+    - name: Gather host backup statuses
+      set_fact:
+        all_backup_statuses: >-
+          {% set results = {} %}
+          {% for host in groups['all'] if 'host_backup_status' in hostvars[host] %}
+            {% set _ = results.update({ host: hostvars[host]['host_backup_status']['result'] }) %}
+          {% endfor %}
+          {{ results }}
+
     - name: Compile backup results
       set_fact:
         notification_backup_results: |
           Backup Results:
-          {% for host in ansible_play_hosts_all %}
-          - {{ host }}: {% if hostvars[host].host_backup_status.result %}✅ SUCCESS{% else %}❌ FAILED{% endif %}
+          {% for host in groups['all'] %}
+          - {{ host }}: {% if all_backup_statuses.get(host, false) %}✅ SUCCESS{% else %}❌ FAILED{% endif %}
           {% endfor %}
       run_once: true
 
     - name: Debug output (optional)
       debug:
-        var: notification_backup_results   
+        var: notification_backup_results
