@@ -45,7 +45,7 @@
           {% else %}
           default
           {% endif %}
-          
+
 - name: Backup running config
   hosts: BEL-01SWI0103
   gather_facts: false
@@ -74,7 +74,6 @@
     - name: Set host backup status
       set_fact:
         host_backup_success: "{{ backup_result is succeeded }}"
-      # This makes the fact available for aggregation
       run_once: true
       delegate_to: localhost
 
