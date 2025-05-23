@@ -89,3 +89,7 @@
       fail:
         msg: "Failed to backup configuration after 3 attempts"
       when: backup_result is failed
+    - name: Confirm backup success
+      debug:
+      msg: "Successfully backed up config to tftp://{{ tftp_server }}/{{ tftp_directory|default('running_config') }}/{{ backup_filename }}"
+      when: backup_result is succeeded
