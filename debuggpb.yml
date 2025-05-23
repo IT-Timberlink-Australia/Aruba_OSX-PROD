@@ -20,30 +20,34 @@
     ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
   tasks:
-     - name: Ping TFTP server via default VRF
-       aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf default"
-       register: ping_default
-       ignore_errors: yes
-       changed_when: false
+    - name: Ping TFTP server via default VRF
+      aoscx_command:
+        commands: "ping {{ hostvars['localhost']['tftp_server'] }} repetitions {{ hostvars['localhost']['ping_repetitions'] }} vrf default"
+      register: ping_default
+      ignore_errors: yes
+      changed_when: false
 
-     - name: Ping TFTP server via mgmt VRF
-       aoscx_command:
-        commands: "ping {{ tftp_server }} repetitions 2 vrf mgmt"
-       register: ping_mgmt
-       ignore_errors: yes
-       changed_when: false
-       when: "'ping4: connect: Network is unreachable' not in ping_default.stderr|default('')"
+    - name: Ping TFTP server via mgmt VRF
+      aoscx_command:
+        commands: "ping {{ hostvars['localhost']['tftp_server'] }} repetitions {{ hostvars['localhost']['ping_repetitions'] }} vrf mgmt"
+      register: ping_mgmt
+      ignore_errors: yes
+      changed_when: false
+      when: >-
+        ping_default is failed or 
+        ('100% packet loss' in ping_default.stdout[0]|default('') or
+         'Network is unreachable' in ping_default.stdout[0]|default('') or
+         'ping4: connect' in ping_default.stderr|default(''))
 
-     - name: Determine which VRF to use
-       set_fact:
+    - name: Determine which VRF to use
+      set_fact:
         target_vrf: >-
-          {% if ping_default is success and 'bytes from' in ping_default.stdout[0] %}
-          default
-          {% elif ping_mgmt is success and 'bytes from' in ping_mgmt.stdout[0] %}
-          mgmt
+          {% if ping_default is success and 'bytes from' in ping_default.stdout[0]|default('') %}
+            default
+          {% elif ping_mgmt is success and 'bytes from' in ping_mgmt.stdout[0]|default('') %}
+            mgmt
           {% else %}
-          default
+            default
           {% endif %}
 
 - name: Backup running config
@@ -62,7 +66,7 @@
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/{{ tftp_directory|default("running_config") }}/{{ backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://{{ hostvars["localhost"]["tftp_server"] }}/{{ hostvars["localhost"]["tftp_directory"] }}/{{ backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
@@ -71,28 +75,29 @@
       until: backup_result is succeeded
       ignore_errors: yes
 
-    - name: Set host backup status
+    - name: Register backup status
       set_fact:
-        host_backup_success: "{{ backup_result is succeeded }}"
-      run_once: true
+        host_backup_status: "{{ {'result': backup_result is succeeded, 'host': inventory_hostname} }}"
       delegate_to: localhost
+      run_once: true
 
-- name: Aggregate results for notifications
+- name: Compile results for notifications
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Compile backup results
+    - name: Aggregate backup results
       set_fact:
         backup_status: >-
           {% set ns = namespace(results={}) %}
           {% for host in ansible_play_hosts_all %}
-          {% if hostvars[host].host_backup_success is defined %}
-          {% set _ = ns.results.update({host: hostvars[host].host_backup_success}) %}
+          {% if hostvars[host].host_backup_status is defined %}
+          {% set _ = ns.results.update({hostvars[host].host_backup_status.host: hostvars[host].host_backup_status.result}) %}
           {% endif %}
           {% endfor %}
           {{ ns.results }}
       run_once: true
 
-    - name: Show final backup status
-      debug:
-        var: backup_status
+    - name: Make backup_status available globally
+      set_fact:
+        backup_status: "{{ backup_status }}"
+      register: backup_status_output
