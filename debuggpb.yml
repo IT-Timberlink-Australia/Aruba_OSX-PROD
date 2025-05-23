@@ -104,6 +104,11 @@
           {% endfor %}
       run_once: true
 
+    - name: Persist notification result for AWX
+      copy:
+        content: "{{ notification_backup_results }}"
+        dest: "/tmp/notification_backup_results.txt"
+
     - name: Debug output (optional)
       debug:
         var: notification_backup_results
