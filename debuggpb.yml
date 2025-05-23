@@ -80,8 +80,6 @@
         host_backup_status: 
           host: "{{ inventory_hostname }}"
           result: "{{ backup_result is succeeded }}"
-      delegate_to: localhost
-      run_once: true
 
 - name: Prepare notification output
   hosts: localhost
