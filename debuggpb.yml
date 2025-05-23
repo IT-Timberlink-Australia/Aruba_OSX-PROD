@@ -85,12 +85,16 @@
       until: backup_result is succeeded
       ignore_errors: yes
 
-    - name: Validate backup completion
-      fail:
-        msg: "Failed to backup configuration after 3 attempts"
-      when: backup_result is failed
+- name: Aggregate results for notifications
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Compile backup results across all hosts
+      set_fact:
+        backup_status: "{{ backup_status | default({}) | combine({ item: hostvars[item].host_backup_success }) }}"
+      loop: "{{ ansible_play_hosts }}"
+      run_once: true
 
-    - name: Confirm backup success
+    - name: Debug backup status (optional)
       debug:
-        msg: "Successfully backed up config to tftp://{{ tftp_server }}/{{ tftp_directory|default('running_config') }}/{{ backup_filename }}"
-      when: backup_result is succeeded
+        var: backup_status
