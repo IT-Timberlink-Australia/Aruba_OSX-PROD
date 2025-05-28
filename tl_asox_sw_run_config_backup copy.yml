@@ -89,16 +89,16 @@
         backup_results: "{{ backup_results | default({}) | combine({ item: (hostvars[item] | default({})).get('backup_result', 'No result') }) }}"
       loop: "{{ groups['all'] }}"
 
-- name: Validate backup results structure
-  debug:
-    msg: |
-      Host: {{ item.key }}
-      Result: {{ item.value | to_nice_json }}
-      Is succeeded?: {{ item.value is succeeded }}
-      Msg content: {{ item.value.msg | default('No msg') | to_nice_json }}
-  loop: "{{ backup_results | dict2items }}"
-  loop_control:
-    label: "{{ item.key }}"
+    - name: Validate backup results structure
+      debug:
+        msg: |
+          Host: {{ item.key }}
+          Result: {{ item.value | to_nice_json }}
+          Is succeeded?: {{ item.value is succeeded }}
+          Msg content: {{ item.value.msg | default('No msg') | to_nice_json }}
+      loop: "{{ backup_results | dict2items }}"
+      loop_control:
+        label: "{{ item.key }}"
 
 - name: Send backup result notification email
   hosts: localhost
