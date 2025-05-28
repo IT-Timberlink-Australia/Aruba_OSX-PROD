@@ -104,9 +104,9 @@
           {{ host }}: 
           {% set msg = result.msg | from_json if result.msg is string else result.msg %}
           {% if msg is mapping and msg.failed == False %}
-              ✅ Successful - {{ msg }}
+              Successful - {{ msg }}
           {% else %}
-              ❌ Failed - {{ msg | default(result) }}
+              Failed - {{ msg | default(result) }}
           {% endif %}
           {% endfor %}
         subtype: plain
