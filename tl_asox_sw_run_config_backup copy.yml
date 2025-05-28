@@ -1,39 +1,126 @@
 ---
-- name: Copy Running Config to NAS storage with dtm
+- name: Initialize and gather required facts
   hosts: localhost
   tasks:
     - name: Get ansible date/time facts
       setup:
         filter: "ansible_date_time"
         gather_subset: "!all"
+
     - name: Store DTG as fact
       set_fact:
         DTG: "{{ ansible_date_time.date }}"
 
-- hosts: all
+- name: Check VRF Ping TFTP Server
+  hosts: all
   gather_facts: false
   collections:
-      - arubanetworks.aoscx
+    - arubanetworks.aoscx
+  vars:
+    ansible_connection: network_cli
+    ansible_network_os: arubanetworks.aoscx.aoscx
+  tasks:
+    - name: Ping TFTP server via default VRF
+      aoscx_command:
+        commands: "ping {{ tftp_server }} repetitions {{ ping_repetitions }} vrf default"
+      register: ping_default
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Ping TFTP server via mgmt VRF
+      aoscx_command:
+        commands: "ping {{ tftp_server }} repetitions {{ ping_repetitions }} vrf mgmt"
+      register: ping_mgmt
+      ignore_errors: yes
+      changed_when: false
+      when: >-
+        ping_default is failed or 
+        ('100% packet loss' in ping_default.stdout[0]|default('') or
+         'Network is unreachable' in ping_default.stdout[0]|default('') or
+         'ping4: connect' in ping_default.stderr|default(''))
+
+    - name: Determine which VRF to use
+      set_fact:
+        target_vrf: >-
+          {% if ping_default is success and 'bytes from' in ping_default.stdout[0]|default('') %}
+            default
+          {% elif ping_mgmt is success and 'bytes from' in ping_mgmt.stdout[0]|default('') %}
+            mgmt
+          {% else %}
+            default
+          {% endif %}
+
+- name: Backup running config
+  hosts: all
+  gather_facts: false
+  collections:
+    - arubanetworks.aoscx
   vars:
     ansible_connection: arubanetworks.aoscx.aoscx
     ansible_network_os: arubanetworks.aoscx.aoscx
   tasks:
-    - name: Set VRF based on platforms value
+    - name: Create backup filename
       set_fact:
-        target_vrf: >-
-          {% if platforms is defined and 'aoscx_l2' in platforms %}
-          default
-          {% elif platforms is defined and 'aoscx' in platforms %}
-          mgmt
-          {% else %}
-          default
-          {% endif %}
-    - name: Show platforms value and VRF selection
-      debug:
-        msg: "Host {{inventory_hostname}} - Platforms: {{ platforms | default('undefined') }}, Using VRF: {{target_vrf}}"
+        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG'] }}_runconfig.cli"
+
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://10.70.128.32/running_config/{{ inventory_hostname }}_{{hostvars.localhost.DTG}}_runconfig.cli'
+        remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/{{ tftp_directory }}/{{ backup_filename }}'
         config_type: 'cli'
-        vrf: "{{target_vrf | trim }}"
+        vrf: "{{ target_vrf | trim }}"
+      register: backup_result
+      retries: 3
+      delay: 10
+      until: backup_result is succeeded
+      ignore_errors: yes
+      changed_when: "'changed' in backup_result.msg and backup_result.msg.changed"
+
+    - name: Register backup result as host fact
+      set_fact:
+        backup_result: "{{ backup_result }}"
+
+- name: Aggregate backup results
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Collect all backup results into master fact
+      set_fact:
+        backup_results: "{{ backup_results | default({}) | combine({ item: (hostvars[item] | default({})).get('backup_result', 'No result') }) }}"
+      loop: "{{ groups['all'] }}"
+
+- name: Validate backup results structure
+  debug:
+    msg: |
+      Host: {{ item.key }}
+      Result: {{ item.value | to_nice_json }}
+      Is succeeded?: {{ item.value is succeeded }}
+      Msg content: {{ item.value.msg | default('No msg') | to_nice_json }}
+  loop: "{{ backup_results | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+
+- name: Send backup result notification email
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Send email with backup results
+      community.general.mail:
+        host: smtp.timberlinkaustralia.com.au
+        port: 25
+        from: awx@timberlinkaustralia.com.au
+        to: "{{ email_recipients }}"
+        subject: "Timberlink Switch Backup Results"
+        body: |
+          {% for host, result in backup_results.items() %}
+          {{ host }}: 
+          {% if result.msg is mapping and result.msg.failed == False %}
+              ✅ Successful - Changed: {{ result.msg.changed }}, Attempts: {{ result.msg.attempts }}
+          {% else %}
+              ❌ Failed - {{ result.msg | default(result) }}
+          {% endif %}
+          {% endfor %}
+        subtype: plain
+    - name: Debug backup results
+      debug:
+        var: backup_results
