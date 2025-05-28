@@ -61,11 +61,11 @@
   tasks:
     - name: Create backup filename
       set_fact:
-        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG'] }}_runconfig.cli"
+        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG'] }}_startconfig.cli"
 
-    - name: Backup running config
+    - name: Backup startup config
       aoscx_backup_config:
-        config_name: 'running-config'
+        config_name: 'startup-config'
         remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/{{ tftp_directory }}/{{ backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
