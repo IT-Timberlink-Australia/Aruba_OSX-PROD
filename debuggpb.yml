@@ -91,9 +91,6 @@
 - name: Send backup result notification email
   hosts: localhost
   gather_facts: false
-  vars:
-    email_recipients:
-      - yourname@example.com
   tasks:
     - name: Send email with backup results
       community.general.mail:
@@ -107,3 +104,6 @@
           {{ host }}: {{ result.msg | default(result) }}
           {% endfor %}
         subtype: plain
+- name: Debug backup results
+  debug:
+    var: backup_results
