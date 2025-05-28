@@ -96,7 +96,7 @@
 
     - name: Compile backup results
       set_fact:
-        backup_results: "{{ backup_results | default({}) | combine({ item: hostvars[item].backup_result }) }}"
+        backup_results: "{{ backup_results | default({}) | combine({ (item | string): (hostvars[item] | default({})).get('backup_result', 'No result') }) }}"
       loop: "{{ ansible_play_hosts_all }}"
       run_once: true
 
