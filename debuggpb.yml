@@ -22,14 +22,14 @@
   tasks:
     - name: Ping TFTP server via default VRF
       aoscx_command:
-        commands: "ping {{ hostvars['localhost']['tftp_server'] }} repetitions {{ hostvars['localhost']['ping_repetitions'] }} vrf default"
+        commands: "ping {{ tftp_server }} repetitions {{ ping_repetitions }} vrf default"
       register: ping_default
       ignore_errors: yes
       changed_when: false
 
     - name: Ping TFTP server via mgmt VRF
       aoscx_command:
-        commands: "ping {{ hostvars['localhost']['tftp_server'] }} repetitions {{ hostvars['localhost']['ping_repetitions'] }} vrf mgmt"
+        commands: "ping {{ tftp_server }} repetitions {{ ping_repetitions }} vrf mgmt"
       register: ping_mgmt
       ignore_errors: yes
       changed_when: false
@@ -56,7 +56,7 @@
   collections:
     - arubanetworks.aoscx
   vars:
-    ansible_connection: arubanetworks.aoscx.aoscx
+    ansible_connection: network_cli
     ansible_network_os: arubanetworks.aoscx.aoscx
   tasks:
     - name: Create backup filename
@@ -66,7 +66,7 @@
     - name: Backup running config
       aoscx_backup_config:
         config_name: 'running-config'
-        remote_output_file_tftp_path: 'tftp://{{ hostvars["localhost"]["tftp_server"] }}/{{ hostvars["localhost"]["tftp_directory"] }}/{{ backup_filename }}'
+        remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/{{ tftp_directory }}/{{ backup_filename }}'
         config_type: 'cli'
         vrf: "{{ target_vrf | trim }}"
       register: backup_result
@@ -75,41 +75,35 @@
       until: backup_result is succeeded
       ignore_errors: yes
 
-    - name: Register backup status
+    - name: Register backup result as host fact
       set_fact:
-        host_backup_status: 
-          host: "{{ inventory_hostname }}"
-          result: "{{ backup_result is succeeded }}"
+        backup_result: "{{ backup_result }}"
 
-- name: Prepare notification output
+- name: Aggregate backup results
   hosts: localhost
   gather_facts: false
   tasks:
-    - name: Gather host backup statuses
+    - name: Collect all backup results into master fact
       set_fact:
-        all_backup_statuses: >-
-          {% set results = {} %}
-          {% for host in groups['all'] if 'host_backup_status' in hostvars[host] %}
-            {% set _ = results.update({ host: hostvars[host]['host_backup_status']['result'] }) %}
-          {% endfor %}
-          {{ results | to_nice_yaml }}
+        backup_results: "{{ backup_results | default({}) | combine({ item: (hostvars[item] | default({})).get('backup_result', 'No result') }) }}"
+      loop: "{{ groups['all'] }}"
 
-    - name: Compile backup results
-      set_fact:
-        backup_results: "{{ backup_results | default({}) | combine({ (item | string): (hostvars[item] | default({})).get('backup_result', 'No result') }) }}"
-      loop: "{{ ansible_play_hosts_all }}"
-      run_once: true
-
+- name: Send backup result notification email
+  hosts: localhost
+  gather_facts: false
+  vars:
+    email_recipients:
+      - yourname@example.com
+  tasks:
     - name: Send email with backup results
       community.general.mail:
         host: smtp.timberlinkaustralia.com.au
         port: 25
         from: awx@timberlinkaustralia.com.au
         to: "{{ email_recipients }}"
-        subject: "Timberlink Network Switch - Running Config Backup Results Notification"
+        subject: "Timberlink Switch Backup Results"
         body: |
           {% for host, result in backup_results.items() %}
-          {{ host }}: {{ result }}
+          {{ host }}: {{ result.msg | default(result) }}
           {% endfor %}
         subtype: plain
-      delegate_to: localhost
