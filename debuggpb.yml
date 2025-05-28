@@ -96,12 +96,8 @@
 
     - name: Compile backup results
       set_fact:
-        notification_backup_results: |
-          Backup Results:
-          {% set statuses = all_backup_statuses | from_yaml %}
-          {% for host in groups['all'] %}
-          - {{ host }}: {% if statuses[host] | default(false) %}✅ SUCCESS{% else %}❌ FAILED{% endif %}
-          {% endfor %}
+        backup_results: "{{ backup_results | default({}) | combine({ item: hostvars[item].backup_result }) }}"
+      loop: "{{ ansible_play_hosts_all }}"
       run_once: true
 
     - name: Send email with backup results
@@ -111,6 +107,9 @@
         from: awx@timberlinkaustralia.com.au
         to: "{{ email_recipients }}"
         subject: "Timberlink Network Switch - Running Config Backup Results Notification"
-        body: "{{ notification_backup_results | default('Backup status unavailable') }}"
+        body: |
+         {% for host, result in backup_results.items() %}
+         {{ host }}: {{ result }}
+         {% endfor %}
         subtype: plain
       delegate_to: localhost
