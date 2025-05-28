@@ -101,7 +101,8 @@
         to: "{{ email_recipients }}"
         subject: "TL Switch Backup Results - Startup Config"
         body: |
-          {{ job_friendly_name }} #{{ job.id }} had status {{ job.status }}, view details at {{ url }}
+          {{ tower_job_template.name }} #{{ tower_job.id }} had status {{ tower_job.status }}
+          View details at: {{ tower_job_url }}
           
           Bell Bay:
           {% for host, result in backup_results.items() if host.startswith('BEL') %}
