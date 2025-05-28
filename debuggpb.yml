@@ -108,8 +108,8 @@
         to: "{{ email_recipients }}"
         subject: "Timberlink Network Switch - Running Config Backup Results Notification"
         body: |
-         {% for host, result in backup_results.items() %}
-         {{ host }}: {{ result }}
-         {% endfor %}
+          {% for host, result in backup_results.items() %}
+          {{ host }}: {{ result }}
+          {% endfor %}
         subtype: plain
       delegate_to: localhost
