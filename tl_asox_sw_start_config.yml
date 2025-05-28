@@ -101,8 +101,15 @@
         to: "{{ email_recipients }}"
         subject: "TL Switch Backup Results - Startup Config"
         body: |
-          {{ tower_job_template.name }} #{{ tower_job.id }} had status {{ tower_job.status }}
-          View details at: {{ tower_job_url }}
+          {% if lookup('env', 'TOWER_HOST') is defined %}
+          Job: {{ lookup('env', 'TOWER_JOB_TEMPLATE_NAME') | default('Backup Job') }}
+          Status: {{ lookup('env', 'TOWER_JOB_STATUS') | default('unknown') }}
+          View details: {{ lookup('env', 'TOWER_HOST') }}/#/jobs/{{ lookup('env', 'TOWER_JOB_ID') | default('') }}
+          
+          {% endif %}
+
+          ==========================================================
+
           
           Bell Bay:
           {% for host, result in backup_results.items() if host.startswith('BEL') %}
