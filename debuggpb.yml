@@ -102,10 +102,11 @@
         body: |
           {% for host, result in backup_results.items() %}
           {{ host }}: 
-          {% if result.msg is mapping and result.msg.get('failed') == False %}
-              Successful - Changed: {{ result.msg.changed }}, Attempts: {{ result.msg.attempts }}
+          {% set msg = result.msg | from_json if result.msg is string else result.msg %}
+          {% if msg is mapping and msg.failed == False %}
+              ✅ Successful - {{ msg }}
           {% else %}
-              Failed - {{ result.msg | default(result) }}
+              ❌ Failed - {{ msg | default(result) }}
           {% endif %}
           {% endfor %}
         subtype: plain
