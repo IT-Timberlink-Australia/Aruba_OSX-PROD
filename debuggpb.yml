@@ -104,6 +104,6 @@
           {{ host }}: {{ result.msg | default(result) }}
           {% endfor %}
         subtype: plain
-- name: Debug backup results
-  debug:
-    var: backup_results
+    - name: Debug backup results
+      debug:
+        var: backup_results
