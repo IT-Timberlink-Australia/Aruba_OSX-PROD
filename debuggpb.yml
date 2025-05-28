@@ -74,7 +74,7 @@
       delay: 10
       until: backup_result is succeeded
       ignore_errors: yes
-      changed_when: "backup_result is succeeded and ('changed' not in backup_result.msg or backup_result.msg.changed)"
+      changed_when: "backup_result is succeeded"
 
     - name: Register backup result as host fact
       set_fact:
@@ -103,10 +103,10 @@
         body: |
           {% for host, result in backup_results.items() %}
           {{ host }}: 
-          {% if result is succeeded or (result.msg is defined and result.msg is mapping and result.msg.get('failed', True) == False) %}
-              ✅ Successful - Attempts: {{ result.attempts | default(result.msg.attempts | default('N/A')) }}
+          {% if result is succeeded or (result.failed == False) %}
+              ✅ Successful - Attempts: {{ result.attempts | default('N/A') }}
           {% else %}
-              ❌ Failed - {{ result.msg | default(result) | to_nice_json }}
+              ❌ Failed - {{ result | to_nice_json }}
           {% endif %}
           {% endfor %}
         subtype: plain
