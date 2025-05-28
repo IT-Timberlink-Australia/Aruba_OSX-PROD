@@ -101,7 +101,7 @@
         subject: "Timberlink Switch Backup Results"
         body: |
           {% for host, result in backup_results.items() %}
-          {{ host }}: {{ result.msg | default(result) }}
+          {{ host }}: {% if result.msg is defined and "'failed': False" in str(result.msg) %}Successful{% else %}Failed{% endif %} - {{ result.msg | default(result) }}
           {% endfor %}
         subtype: plain
     - name: Debug backup results
