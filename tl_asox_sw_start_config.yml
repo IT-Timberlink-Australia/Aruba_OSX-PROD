@@ -102,15 +102,12 @@
         subject: "TL Switch Backup Results - Startup Config"
         body: |
 
-          {% if awx_job_name is defined or awx_job_id is defined %}
-          Job: {{ awx_job_name | default('Unknown Job') }}
-          Job ID: {{ awx_job_id | default('Unknown Job ID') }}
-          Status: {{ awx_job_status | default('Unknown Status') }}
-          {% if awx_job_id is defined and url is defined %}
-          View details: {{ url | default('') }}/#/jobs/{{ awx_job_id }}
+          {% if awx_job_info is defined %}
+          Job: {{ awx_job_info.name | default('Unknown Job') }}
+          Job ID: {{ awx_job_info.id | default('Unknown Job ID') }}
+          Status: {{ awx_job_info.status | default('Unknown Status') }}
+          URL: {{ awx_job_info.url | default('') }}
           {% endif %}
-          {% endif %}
-          Date: {{ ansible_date_time.iso8601 }}
 
           ==========================================================
 
