@@ -102,13 +102,13 @@
         subject: "TL Switch Backup Results - Startup Config"
         body: |
 
-          Job: {{ awx_job_name }}
-          Job ID: {{ tower_job_id | 'N/A') }}
+          Job: {{ awx_job_name | default('Unknown Job') }}
+          Job ID: {{ tower_job_id | default('N/A') }}
           Job Status: ✅ Completed
 
-          TFTP: {{ tftp_server_name }}
-          TFTP Directory: {{ tftp_directory }}
-          Date: {{ ansible_date_time.iso8601 }}
+          TFTP: {{ tftp_server_name | default('Not Set') }}
+          TFTP Directory: {{ tftp_directory | default('/default/path') }}
+          Date: {{ ansible_date_time.iso8601 | default('Unknown Date') }}
 
           ==========================================================
 
