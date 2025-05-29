@@ -101,16 +101,15 @@
         to: "{{ email_recipients }}"
         subject: "TL Switch Backup Results - Startup Config"
         body: |
-          {% if lookup('env', 'TOWER_HOST') is defined %}
-          Job: {{ lookup('env', 'TOWER_JOB_TEMPLATE_NAME') | default('Backup Job') }}
-          Status: {{ lookup('env', 'TOWER_JOB_STATUS') | default('unknown') }}
-          View details: {{ lookup('env', 'TOWER_HOST') }}/#/jobs/{{ lookup('env', 'TOWER_JOB_ID') | default('') }}
-          
-          {% endif %}
+        
+          Job: {{ lookup('env', 'awx_job_name') | default('Unknown Job') }}
+          Job ID: {{ lookup('env', 'awx_job_id') | default('Unknown Job ID') }}
+          Job Status: {{ lookup('env', 'awx_job_status') | default('Unknown Status') }}
+          Job URL: {{ lookup('env', 'awx_job_url') | default('Unknown URL') }}
+          Date: {{ ansible_date_time.iso8601 }}
 
           ==========================================================
 
-          
           Bell Bay:
           {% for host, result in backup_results.items() if host.startswith('BEL') %}
             {{ host }}: 
