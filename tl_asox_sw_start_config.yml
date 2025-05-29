@@ -103,84 +103,79 @@
           <body>
             <p><strong>Job:</strong> {{ awx_job_name | default('Unknown Job') }}<br>
             <strong>Job ID:</strong> {{ tower_job_id | default('N/A') }}<br>
-            <strong>Job Status:</strong> ✅ Completed<br><br>
+            <strong>Job Status:</strong> ✅ Completed</p>
 
-            <strong>TFTP Server:</strong> {{ tftp_server_name | default('Not Set') }}<br>
+            <p><strong>TFTP Server:</strong> {{ tftp_server_name | default('Not Set') }}<br>
             <strong>TFTP Directory:</strong> {{ tftp_directory | default('/default/path') }}<br>
             <strong>Date:</strong> {{ DTG_local | default('Unknown Date') }}</p>
 
             <hr>
 
             <h3>Bell Bay</h3>
-            {% set bell = namespace(success=0, fail=0, hosts=[]) %}
-            {% for host, result in backup_results.items() if host.startswith('BEL') %}
-              {% set _ = bell.hosts.append(host) %}
-              <p><strong>{{ host }}:</strong><br>
-              {% if result is succeeded or (result.failed == false) %}
-                ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-                {% set _ = bell.update({'success': bell.success + 1}) %}
-              {% else %}
-                ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-                {% set _ = bell.update({'fail': bell.fail + 1}) %}
-              {% endif %}
-              </p>
-            {% endfor %}
-            {% if bell.hosts | length == 0 %}
+            {% set bell_hosts = backup_results | dict2items | selectattr('key', 'match', '^BEL') | list %}
+            {% if bell_hosts | length == 0 %}
               <p>No Bell Bay switches in backup results.</p>
             {% else %}
-              <p><strong>✅ Successes:</strong> {{ bell.success }}<br>
-              <strong>❌ Failures:</strong> {{ bell.fail }}</p>
+              {% for item in bell_hosts %}
+                <p><strong>{{ item.key }}:</strong><br>
+                {% if item.value is succeeded or (item.value.failed == false) %}
+                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
+                {% else %}
+                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
+                {% endif %}
+                </p>
+              {% endfor %}
+              <p>
+                <strong>✅ Successes:</strong> {{ bell_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
+                <strong>❌ Failures:</strong> {{ bell_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
+              </p>
             {% endif %}
-
 
             <hr>
 
             <h3>Tarpeena</h3>
-            {% set tarp_success = 0 %}
-            {% set tarp_fail = 0 %}
-            {% set tarp_hosts = [] %}
-            {% for host, result in backup_results.items() if host.startswith('TAR') %}
-              {% set _ = tarp_hosts.append(host) %}
-              <p><strong>{{ host }}:</strong><br>
-              {% if result is succeeded or (result.failed == false) %}
-                ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-                {% set tarp_success = tarp_success + 1 %}
-              {% else %}
-                ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-                {% set tarp_fail = tarp_fail + 1 %}
-              {% endif %}
-              </p>
-            {% endfor %}
+            {% set tarp_hosts = backup_results | dict2items | selectattr('key', 'match', '^TAR') | list %}
             {% if tarp_hosts | length == 0 %}
               <p>No Tarpeena switches in backup results.</p>
             {% else %}
-              <p><strong>✅ Successes:</strong> {{ tarp_success }}<br>
-              <strong>❌ Failures:</strong> {{ tarp_fail }}</p>
+              {% for item in tarp_hosts %}
+                <p><strong>{{ item.key }}:</strong><br>
+                {% if item.value is succeeded or (item.value.failed == false) %}
+                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
+                {% else %}
+                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
+                {% endif %}
+                </p>
+              {% endfor %}
+              <p>
+                <strong>✅ Successes:</strong> {{ tarp_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
+                <strong>❌ Failures:</strong> {{ tarp_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
+              </p>
             {% endif %}
 
             <hr>
 
             <h3>Other Sites</h3>
-            {% set other_success = 0 %}
-            {% set other_fail = 0 %}
-            {% set other_hosts = [] %}
-            {% for host, result in backup_results.items() if not host.startswith('BEL') and not host.startswith('TAR') %}
-              {% set _ = other_hosts.append(host) %}
-              <p><strong>{{ host }}:</strong><br>
-              {% if result is succeeded or (result.failed == false) %}
-                ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-                {% set other_success = other_success + 1 %}
-              {% else %}
-                ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-                {% set other_fail = other_fail + 1 %}
-              {% endif %}
-              </p>
-            {% endfor %}
+            {% set other_hosts = backup_results | dict2items 
+              | rejectattr('key', 'match', '^BEL') 
+              | rejectattr('key', 'match', '^TAR') 
+              | list %}
             {% if other_hosts | length == 0 %}
               <p>No other site switches in backup results.</p>
             {% else %}
-              <p><strong>✅ Successes:</strong> {{ other_success }}<br>
-              <strong>❌ Failures:</strong> {{ other_fail }}</p>
+              {% for item in other_hosts %}
+                <p><strong>{{ item.key }}:</strong><br>
+                {% if item.value is succeeded or (item.value.failed == false) %}
+                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
+                {% else %}
+                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
+                {% endif %}
+                </p>
+              {% endfor %}
+              <p>
+                <strong>✅ Successes:</strong> {{ other_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
+                <strong>❌ Failures:</strong> {{ other_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
+              </p>
             {% endif %}
           </body>
           </html>
