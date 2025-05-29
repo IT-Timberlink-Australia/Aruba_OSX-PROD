@@ -1,25 +1,13 @@
 ---
-- name: Convert server UTC time to +10 timezone and custom format
-  hosts: localhost
-  gather_facts: yes
-  tasks:
-
-    - name: Ensure required facts are gathered
-      setup:
-        filter: "ansible_date_time"
-        gather_subset: "!all"
-
-    - name: Convert UTC time to +10 timezone and format as DD_MM_YYYY_HHMM
-      set_fact:
-        DTG_local: >-
-          {{ ansible_date_time.iso8601
-             | community.general.to_datetime
-             | community.general.to_tz('+10')
-             | strftime('%d_%m_%Y_%H%M') }}
-
-    - name: Show formatted local time
-      debug:
-        msg: "Local time (+10): {{ DTG_local }}"
+- name: Compute time with +10 offset (no external collection)
+  set_fact:
+    DTG_local: >-
+      {{
+        (ansible_date_time.iso8601
+          | to_datetime('%Y-%m-%dT%H:%M:%SZ')
+          + timedelta(hours=10))
+          | strftime('%d_%m_%Y_%H%M')
+      }}
 
 - name: Check VRF Ping TFTP Server
   hosts: all
