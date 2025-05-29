@@ -114,9 +114,9 @@
             <h3>Bell Bay</h3>
             {% set bell_success = 0 %}
             {% set bell_fail = 0 %}
-            {% set found = false %}
+            {% set bell_hosts = [] %}
             {% for host, result in backup_results.items() if host.startswith('BEL') %}
-              {% set found = true %}
+              {% set _ = bell_hosts.append(host) %}
               <p><strong>{{ host }}:</strong><br>
               {% if result is succeeded or (result.failed == false) %}
                 ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
@@ -127,7 +127,7 @@
               {% endif %}
               </p>
             {% endfor %}
-            {% if not found %}
+            {% if bell_hosts | length == 0 %}
               <p>No Bell Bay switches in backup results.</p>
             {% else %}
               <p><strong>✅ Successes:</strong> {{ bell_success }}<br>
@@ -139,9 +139,9 @@
             <h3>Tarpeena</h3>
             {% set tarp_success = 0 %}
             {% set tarp_fail = 0 %}
-            {% set found = false %}
+            {% set tarp_hosts = [] %}
             {% for host, result in backup_results.items() if host.startswith('TAR') %}
-              {% set found = true %}
+              {% set _ = tarp_hosts.append(host) %}
               <p><strong>{{ host }}:</strong><br>
               {% if result is succeeded or (result.failed == false) %}
                 ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
@@ -152,7 +152,7 @@
               {% endif %}
               </p>
             {% endfor %}
-            {% if not found %}
+            {% if tarp_hosts | length == 0 %}
               <p>No Tarpeena switches in backup results.</p>
             {% else %}
               <p><strong>✅ Successes:</strong> {{ tarp_success }}<br>
@@ -164,9 +164,9 @@
             <h3>Other Sites</h3>
             {% set other_success = 0 %}
             {% set other_fail = 0 %}
-            {% set found = false %}
+            {% set other_hosts = [] %}
             {% for host, result in backup_results.items() if not host.startswith('BEL') and not host.startswith('TAR') %}
-              {% set found = true %}
+              {% set _ = other_hosts.append(host) %}
               <p><strong>{{ host }}:</strong><br>
               {% if result is succeeded or (result.failed == false) %}
                 ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
@@ -177,7 +177,7 @@
               {% endif %}
               </p>
             {% endfor %}
-            {% if not found %}
+            {% if other_hosts | length == 0 %}
               <p>No other site switches in backup results.</p>
             {% else %}
               <p><strong>✅ Successes:</strong> {{ other_success }}<br>
