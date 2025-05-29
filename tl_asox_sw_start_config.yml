@@ -97,91 +97,91 @@
         from: awx@timberlinkaustralia.com.au
         to: "{{ email_recipients }}"
         subject: "TL Switch Backup Results - Startup Config"
-  subtype: html
-  body: |
-    <html>
-    <body>
-      <p><strong>Job:</strong> {{ awx_job_name | default('Unknown Job') }}<br>
-      <strong>Job ID:</strong> {{ tower_job_id | default('N/A') }}<br>
-      <strong>Job Status:</strong> ✅ Completed<br><br>
+        subtype: html
+        body: |
+          <html>
+          <body>
+            <p><strong>Job:</strong> {{ awx_job_name | default('Unknown Job') }}<br>
+            <strong>Job ID:</strong> {{ tower_job_id | default('N/A') }}<br>
+            <strong>Job Status:</strong> ✅ Completed<br><br>
 
-      <strong>TFTP Server:</strong> {{ tftp_server_name | default('Not Set') }}<br>
-      <strong>TFTP Directory:</strong> {{ tftp_directory | default('/default/path') }}<br>
-      <strong>Date:</strong> {{ DTG_local | default('Unknown Date') }}</p>
+            <strong>TFTP Server:</strong> {{ tftp_server_name | default('Not Set') }}<br>
+            <strong>TFTP Directory:</strong> {{ tftp_directory | default('/default/path') }}<br>
+            <strong>Date:</strong> {{ DTG_local | default('Unknown Date') }}</p>
 
-      <hr>
+            <hr>
 
-      <h3>Bell Bay</h3>
-      {% set bell_success = 0 %}
-      {% set bell_fail = 0 %}
-      {% set found = false %}
-      {% for host, result in backup_results.items() if host.startswith('BEL') %}
-        {% set found = true %}
-        <p><strong>{{ host }}:</strong><br>
-        {% if result is succeeded or (result.failed == false) %}
-          ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-          {% set bell_success = bell_success + 1 %}
-        {% else %}
-          ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-          {% set bell_fail = bell_fail + 1 %}
-        {% endif %}
-        </p>
-      {% endfor %}
-      {% if not found %}
-        <p>No Bell Bay switches in backup results.</p>
-      {% else %}
-        <p><strong>✅ Successes:</strong> {{ bell_success }}<br>
-        <strong>❌ Failures:</strong> {{ bell_fail }}</p>
-      {% endif %}
+            <h3>Bell Bay</h3>
+            {% set bell_success = 0 %}
+            {% set bell_fail = 0 %}
+            {% set found = false %}
+            {% for host, result in backup_results.items() if host.startswith('BEL') %}
+              {% set found = true %}
+              <p><strong>{{ host }}:</strong><br>
+              {% if result is succeeded or (result.failed == false) %}
+                ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
+                {% set bell_success = bell_success + 1 %}
+              {% else %}
+                ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
+                {% set bell_fail = bell_fail + 1 %}
+              {% endif %}
+              </p>
+            {% endfor %}
+            {% if not found %}
+              <p>No Bell Bay switches in backup results.</p>
+            {% else %}
+              <p><strong>✅ Successes:</strong> {{ bell_success }}<br>
+              <strong>❌ Failures:</strong> {{ bell_fail }}</p>
+            {% endif %}
 
-      <hr>
+            <hr>
 
-      <h3>Tarpeena</h3>
-      {% set tarp_success = 0 %}
-      {% set tarp_fail = 0 %}
-      {% set found = false %}
-      {% for host, result in backup_results.items() if host.startswith('TAR') %}
-        {% set found = true %}
-        <p><strong>{{ host }}:</strong><br>
-        {% if result is succeeded or (result.failed == false) %}
-          ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-          {% set tarp_success = tarp_success + 1 %}
-        {% else %}
-          ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-          {% set tarp_fail = tarp_fail + 1 %}
-        {% endif %}
-        </p>
-      {% endfor %}
-      {% if not found %}
-        <p>No Tarpeena switches in backup results.</p>
-      {% else %}
-        <p><strong>✅ Successes:</strong> {{ tarp_success }}<br>
-        <strong>❌ Failures:</strong> {{ tarp_fail }}</p>
-      {% endif %}
+            <h3>Tarpeena</h3>
+            {% set tarp_success = 0 %}
+            {% set tarp_fail = 0 %}
+            {% set found = false %}
+            {% for host, result in backup_results.items() if host.startswith('TAR') %}
+              {% set found = true %}
+              <p><strong>{{ host }}:</strong><br>
+              {% if result is succeeded or (result.failed == false) %}
+                ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
+                {% set tarp_success = tarp_success + 1 %}
+              {% else %}
+                ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
+                {% set tarp_fail = tarp_fail + 1 %}
+              {% endif %}
+              </p>
+            {% endfor %}
+            {% if not found %}
+              <p>No Tarpeena switches in backup results.</p>
+            {% else %}
+              <p><strong>✅ Successes:</strong> {{ tarp_success }}<br>
+              <strong>❌ Failures:</strong> {{ tarp_fail }}</p>
+            {% endif %}
 
-      <hr>
+            <hr>
 
-      <h3>Other Sites</h3>
-      {% set other_success = 0 %}
-      {% set other_fail = 0 %}
-      {% set found = false %}
-      {% for host, result in backup_results.items() if not host.startswith('BEL') and not host.startswith('TAR') %}
-        {% set found = true %}
-        <p><strong>{{ host }}:</strong><br>
-        {% if result is succeeded or (result.failed == false) %}
-          ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-          {% set other_success = other_success + 1 %}
-        {% else %}
-          ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-          {% set other_fail = other_fail + 1 %}
-        {% endif %}
-        </p>
-      {% endfor %}
-      {% if not found %}
-        <p>No other site switches in backup results.</p>
-      {% else %}
-        <p><strong>✅ Successes:</strong> {{ other_success }}<br>
-        <strong>❌ Failures:</strong> {{ other_fail }}</p>
-      {% endif %}
-    </body>
-    </html>
+            <h3>Other Sites</h3>
+            {% set other_success = 0 %}
+            {% set other_fail = 0 %}
+            {% set found = false %}
+            {% for host, result in backup_results.items() if not host.startswith('BEL') and not host.startswith('TAR') %}
+              {% set found = true %}
+              <p><strong>{{ host }}:</strong><br>
+              {% if result is succeeded or (result.failed == false) %}
+                ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
+                {% set other_success = other_success + 1 %}
+              {% else %}
+                ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
+                {% set other_fail = other_fail + 1 %}
+              {% endif %}
+              </p>
+            {% endfor %}
+            {% if not found %}
+              <p>No other site switches in backup results.</p>
+            {% else %}
+              <p><strong>✅ Successes:</strong> {{ other_success }}<br>
+              <strong>❌ Failures:</strong> {{ other_fail }}</p>
+            {% endif %}
+          </body>
+          </html>
