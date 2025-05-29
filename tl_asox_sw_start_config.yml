@@ -101,11 +101,11 @@
         to: "{{ email_recipients }}"
         subject: "TL Switch Backup Results - Startup Config"
         body: |
-        
-          Job: {{ lookup('env', 'awx_job_name') | default('Unknown Job') }}
-          Job ID: {{ lookup('env', 'awx_job_id') | default('Unknown Job ID') }}
-          Job Status: {{ lookup('env', 'awx_job_status') | default('Unknown Status') }}
-          Job URL: {{ lookup('env', 'awx_job_url') | default('Unknown URL') }}
+
+          Job: {{ awx_job_name | default('Unknown Job') }}
+          Job ID: {{ awx_job_id | default('Unknown Job ID') }}
+          Job Status: {{ awx_job_status | default('Unknown Status') }}
+          Job URL: {{ awx_job_url | default('Unknown URL') }}
           Date: {{ ansible_date_time.iso8601 }}
 
           ==========================================================
