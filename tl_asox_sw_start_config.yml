@@ -101,14 +101,16 @@
         to: "{{ email_recipients }}"
         subject: "TL Switch Backup Results - Startup Config"
         body: |
-
-          {% if awx_job_info is defined %}
-          Job: {{ awx_job_info.name | default('Unknown Job') }}
-          Job ID: {{ awx_job_info.id | default('Unknown Job ID') }}
-          Status: {{ awx_job_info.status | default('Unknown Status') }}
-          URL: {{ awx_job_info.url | default('') }}
+          {% if job_friendly_name is defined or job is defined %}
+          Job: {{ job_friendly_name | default('Backup Job') }}
+          Job ID: {{ job.id | default('N/A') }}
+          Status: {{ job.status | default('completed') }}
+          {% if job is defined and url is defined %}
+          View details: {{ url }}/#/jobs/{{ job.id }}
           {% endif %}
-
+          {% endif %}
+          Date: {{ ansible_date_time.iso8601 }}
+          
           ==========================================================
 
           Bell Bay:
