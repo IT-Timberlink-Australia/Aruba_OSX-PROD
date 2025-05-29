@@ -152,6 +152,3 @@
             No other site switches in backup results
           {% endfor %}
         subtype: plain
-    - name: Debug backup results
-      debug:
-        var: backup_results
