@@ -118,10 +118,10 @@
               <p><strong>{{ host }}:</strong><br>
               {% if result is succeeded or (result.failed == false) %}
                 ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-                {% set _ = bell.__setattr__('success', bell.success + 1) %}
+                {% set _ = bell.update({'success': bell.success + 1}) %}
               {% else %}
                 ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-                {% set _ = bell.__setattr__('fail', bell.fail + 1) %}
+                {% set _ = bell.update({'fail': bell.fail + 1}) %}
               {% endif %}
               </p>
             {% endfor %}
@@ -131,6 +131,7 @@
               <p><strong>✅ Successes:</strong> {{ bell.success }}<br>
               <strong>❌ Failures:</strong> {{ bell.fail }}</p>
             {% endif %}
+
 
             <hr>
 
