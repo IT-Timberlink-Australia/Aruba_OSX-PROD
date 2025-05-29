@@ -47,7 +47,7 @@
             default
           {% endif %}
 
-- name: Backup startup config
+- name: Backup running config
   hosts: all
   gather_facts: false
   collections:
@@ -58,7 +58,7 @@
   tasks:
     - name: Create backup filename
       set_fact:
-        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG_local'] }}_startconfig.cli"
+        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG_local'] }}_startupconfig.cli"
 
     - name: Backup startup config
       aoscx_backup_config:
@@ -76,6 +76,22 @@
     - name: Register backup result as host fact
       set_fact:
         backup_result: "{{ backup_result }}"
+    - name: Update NetBox device with backup result
+      netbox.netbox.netbox_device:
+        netbox_url: "{{ lookup('env', 'NETBOX_API') }}"
+        netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') }}"
+        validate_certs: true
+        data:
+          name: "{{ inventory_hostname }}"
+          custom_fields:
+            last_backup_data_sec: >-
+              {% if backup_result is succeeded or (backup_result.failed == false) %}
+                Success - Attempts: {{ backup_result.attempts | default('N/A') }}, File: {{ backup_filename }}
+              {% else %}
+                Failed - {{ backup_result.msg | default('Unknown error') }}
+              {% endif %}
+      delegate_to: localhost
+      run_once: false
 
 - name: Aggregate backup results
   hosts: localhost
