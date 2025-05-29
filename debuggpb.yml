@@ -84,7 +84,7 @@
         data:
           name: "{{ inventory_hostname }}"
           custom_fields:
-            "{{ last_backup_data }}": >-
+            "{{ cf_last_backup_data }}": >-
               {% if backup_result is succeeded or (backup_result.failed == false) %}
                 Success - Attempts: {{ backup_result.attempts | default('N/A') }}
               {% else %}
