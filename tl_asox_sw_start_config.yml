@@ -112,26 +112,24 @@
             <hr>
 
             <h3>Bell Bay</h3>
-            {% set bell_success = 0 %}
-            {% set bell_fail = 0 %}
-            {% set bell_hosts = [] %}
+            {% set bell = namespace(success=0, fail=0, hosts=[]) %}
             {% for host, result in backup_results.items() if host.startswith('BEL') %}
-              {% set _ = bell_hosts.append(host) %}
+              {% set _ = bell.hosts.append(host) %}
               <p><strong>{{ host }}:</strong><br>
               {% if result is succeeded or (result.failed == false) %}
                 ✅ Successful — Attempts: {{ result.attempts | default('N/A') }}
-                {% set bell_success = bell_success + 1 %}
+                {% set _ = bell.__setattr__('success', bell.success + 1) %}
               {% else %}
                 ❌ Failed<br><pre>{{ result | to_nice_json }}</pre>
-                {% set bell_fail = bell_fail + 1 %}
+                {% set _ = bell.__setattr__('fail', bell.fail + 1) %}
               {% endif %}
               </p>
             {% endfor %}
-            {% if bell_hosts | length == 0 %}
+            {% if bell.hosts | length == 0 %}
               <p>No Bell Bay switches in backup results.</p>
             {% else %}
-              <p><strong>✅ Successes:</strong> {{ bell_success }}<br>
-              <strong>❌ Failures:</strong> {{ bell_fail }}</p>
+              <p><strong>✅ Successes:</strong> {{ bell.success }}<br>
+              <strong>❌ Failures:</strong> {{ bell.fail }}</p>
             {% endif %}
 
             <hr>
