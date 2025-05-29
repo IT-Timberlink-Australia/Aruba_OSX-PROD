@@ -1,5 +1,6 @@
 ---
 - name: Compute time with +10 offset (no external collection)
+  hosts: localhost
   set_fact:
     DTG_local: >-
       {{
