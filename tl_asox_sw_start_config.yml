@@ -1,15 +1,25 @@
 ---
-- name: Initialize and gather required facts
+- name: Convert server UTC time to +10 timezone and custom format
   hosts: localhost
+  gather_facts: yes
   tasks:
-    - name: Get ansible date/time facts
+
+    - name: Ensure required facts are gathered
       setup:
         filter: "ansible_date_time"
         gather_subset: "!all"
 
-    - name: Store DTG as fact
+    - name: Convert UTC time to +10 timezone and format as DD_MM_YYYY_HHMM
       set_fact:
-        DTG: "{{ ansible_date_time.date }}"
+        DTG_local: >-
+          {{ ansible_date_time.iso8601
+             | community.general.to_datetime
+             | community.general.to_tz('+10')
+             | strftime('%d_%m_%Y_%H%M') }}
+
+    - name: Show formatted local time
+      debug:
+        msg: "Local time (+10): {{ DTG_local }}"
 
 - name: Check VRF Ping TFTP Server
   hosts: all
@@ -61,7 +71,7 @@
   tasks:
     - name: Create backup filename
       set_fact:
-        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG'] }}_startconfig.cli"
+        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG_local'] }}_startconfig.cli"
 
     - name: Backup startup config
       aoscx_backup_config:
@@ -106,9 +116,9 @@
           Job ID: {{ tower_job_id | default('N/A') }}
           Job Status: ✅ Completed
 
-          TFTP: {{ tftp_server_name | default('Not Set') }}
+          TFTP Server: {{ tftp_server_name | default('Not Set') }}
           TFTP Directory: {{ tftp_directory | default('/default/path') }}
-          Date: {{ ansible_date_time.iso8601 | default('Unknown Date') }}
+          Date: {{ DTG_local | default('Unknown Date') }}
 
           ==========================================================
 
