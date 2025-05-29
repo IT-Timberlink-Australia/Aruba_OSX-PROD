@@ -89,6 +89,13 @@
         backup_results: "{{ backup_results | default({}) | combine({ item: (hostvars[item] | default({})).get('backup_result', 'No result') }) }}"
       loop: "{{ groups['all'] }}"
 
+- name: Debug AWX variables
+  debug:
+    msg: |
+      job_friendly_name: {{ job_friendly_name | default('UNDEFINED') }}
+      job: {{ job | default('UNDEFINED') | to_nice_json }}
+      url: {{ url | default('UNDEFINED') }}
+
 - name: Send backup result notification email
   hosts: localhost
   gather_facts: false
