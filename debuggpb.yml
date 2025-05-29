@@ -80,7 +80,7 @@
       netbox.netbox.netbox_device:
         netbox_url: "{{ lookup('env', 'NETBOX_API') }}"
         netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') }}"
-        validate_certs: false
+        validate_certs: true
         data:
           name: "{{ inventory_hostname }}"
           custom_fields:
