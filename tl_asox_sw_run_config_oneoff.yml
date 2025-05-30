@@ -58,7 +58,7 @@
   tasks:
     - name: Create backup filename
       set_fact:
-        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG_local'] }}_runningconfig.cli"
+        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG_local'] }}_oneoff_config.cli"
 
     - name: Backup running config
       aoscx_backup_config:
@@ -127,12 +127,12 @@
 
             <hr>
 
-            <h3>Bell Bay</h3>
-            {% set bell_hosts = backup_results | dict2items | selectattr('key', 'match', '^BEL') | list %}
-            {% if bell_hosts | length == 0 %}
-              <p>No Bell Bay switches in backup results.</p>
+            <h3>All Hosts</h3>
+            {% set all_hosts = backup_results | dict2items | list %}
+            {% if all_hosts | length == 0 %}
+              <p>No hosts in backup results.</p>
             {% else %}
-              {% for item in bell_hosts %}
+              {% for item in all_hosts %}
                 <p><strong>{{ item.key }}:</strong><br>
                 {% if item.value is succeeded or (item.value.failed == false) %}
                   ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
@@ -142,56 +142,11 @@
                 </p>
               {% endfor %}
               <p>
-                <strong>✅ Successes:</strong> {{ bell_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
-                <strong>❌ Failures:</strong> {{ bell_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
+                <strong>✅ Successes:</strong> {{ all_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
+                <strong>❌ Failures:</strong> {{ all_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
               </p>
             {% endif %}
 
-            <hr>
-
-            <h3>Tarpeena</h3>
-            {% set tarp_hosts = backup_results | dict2items | selectattr('key', 'match', '^TAR') | list %}
-            {% if tarp_hosts | length == 0 %}
-              <p>No Tarpeena switches in backup results.</p>
-            {% else %}
-              {% for item in tarp_hosts %}
-                <p><strong>{{ item.key }}:</strong><br>
-                {% if item.value is succeeded or (item.value.failed == false) %}
-                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
-                {% else %}
-                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
-                {% endif %}
-                </p>
-              {% endfor %}
-              <p>
-                <strong>✅ Successes:</strong> {{ tarp_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
-                <strong>❌ Failures:</strong> {{ tarp_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
-              </p>
-            {% endif %}
-
-            <hr>
-
-            <h3>Other Sites</h3>
-            {% set other_hosts = backup_results | dict2items 
-              | rejectattr('key', 'match', '^BEL') 
-              | rejectattr('key', 'match', '^TAR') 
-              | list %}
-            {% if other_hosts | length == 0 %}
-              <p>No other site switches in backup results.</p>
-            {% else %}
-              {% for item in other_hosts %}
-                <p><strong>{{ item.key }}:</strong><br>
-                {% if item.value is succeeded or (item.value.failed == false) %}
-                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
-                {% else %}
-                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
-                {% endif %}
-                </p>
-              {% endfor %}
-              <p>
-                <strong>✅ Successes:</strong> {{ other_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
-                <strong>❌ Failures:</strong> {{ other_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
-              </p>
-            {% endif %}
+            
           </body>
           </html>
