@@ -1,0 +1,197 @@
+---
+- name: Initialize and gather required facts
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Compute current time with +10 offset (no external collections)
+      set_fact:
+        DTG_local: >-
+          {{ (lookup('pipe', 'date -u -d "+10 hours" "+%d_%m_%Y_%H%M"')) }}
+
+- name: Check VRF Ping TFTP Server
+  hosts: "{{ target_host | default('all') }}"
+  gather_facts: false
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_connection: network_cli
+    ansible_network_os: arubanetworks.aoscx.aoscx
+  tasks:
+    - name: Ping TFTP server via default VRF
+      aoscx_command:
+        commands: "ping {{ tftp_server }} repetitions {{ ping_repetitions }} vrf default"
+      register: ping_default
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Ping TFTP server via mgmt VRF
+      aoscx_command:
+        commands: "ping {{ tftp_server }} repetitions {{ ping_repetitions }} vrf mgmt"
+      register: ping_mgmt
+      ignore_errors: yes
+      changed_when: false
+      when: >-
+        ping_default is failed or 
+        ('100% packet loss' in ping_default.stdout[0]|default('') or
+         'Network is unreachable' in ping_default.stdout[0]|default('') or
+         'ping4: connect' in ping_default.stderr|default(''))
+
+    - name: Determine which VRF to use
+      set_fact:
+        target_vrf: >-
+          {% if ping_default is success and 'bytes from' in ping_default.stdout[0]|default('') %}
+            default
+          {% elif ping_mgmt is success and 'bytes from' in ping_mgmt.stdout[0]|default('') %}
+            mgmt
+          {% else %}
+            default
+          {% endif %}
+
+- name: Backup running config
+  hosts: "{{ target_host | default('all') }}"
+  gather_facts: false
+  collections:
+    - arubanetworks.aoscx
+  vars:
+    ansible_connection: arubanetworks.aoscx.aoscx
+    ansible_network_os: arubanetworks.aoscx.aoscx
+  tasks:
+    - name: Create backup filename
+      set_fact:
+        backup_filename: "{{ inventory_hostname }}_{{ hostvars['localhost']['DTG_local'] }}_runningconfig.cli"
+
+    - name: Backup running config
+      aoscx_backup_config:
+        config_name: 'running-config'
+        remote_output_file_tftp_path: 'tftp://{{ tftp_server }}/{{ tftp_directory }}/{{ backup_filename }}'
+        config_type: 'cli'
+        vrf: "{{ target_vrf | trim }}"
+      register: backup_result
+      retries: 3
+      delay: 10
+      until: backup_result is succeeded
+      ignore_errors: yes
+      changed_when: "backup_result is succeeded"
+
+    - name: Register backup result as host fact
+      set_fact:
+        backup_result: "{{ backup_result }}"
+    - name: Update NetBox device with backup result
+      netbox.netbox.netbox_device:
+        netbox_url: "{{ lookup('env', 'NETBOX_API') }}"
+        netbox_token: "{{ lookup('env', 'NETBOX_TOKEN') }}"
+        validate_certs: true
+        data:
+          name: "{{ inventory_hostname }}"
+          custom_fields:
+            last_backup_data_one: >-
+              {% if backup_result is succeeded or (backup_result.failed == false) %}
+                Success - Attempts: {{ backup_result.attempts | default('N/A') }}, File: {{ backup_filename }}
+              {% else %}
+                Failed - {{ backup_result.msg | default('Unknown error') }}
+              {% endif %}
+      delegate_to: localhost
+      run_once: false
+
+- name: Aggregate backup results
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Collect all backup results into master fact
+      set_fact:
+        backup_results: "{{ backup_results | default({}) | combine({ item: (hostvars[item] | default({})).get('backup_result', 'No result') }) }}"
+      loop: "{{ groups['all'] }}"
+
+- name: Send backup result notification email
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Send email with backup results
+      community.general.mail:
+        host: smtp.timberlinkaustralia.com.au
+        port: 25
+        from: awx@timberlinkaustralia.com.au
+        to: "{{ email_recipients }}"
+        subject: "TL Switch Backup Results - Running Config"
+        subtype: html
+        body: |
+          <html>
+          <body>
+            <p><strong>Job:</strong> {{ awx_job_name | default('Unknown Job') }}<br>
+            <strong>Job ID:</strong> {{ tower_job_id | default('N/A') }}<br>
+            <strong>Job Status:</strong> ✅ Completed</p>
+
+            <p><strong>TFTP Server:</strong> {{ tftp_server_name | default('Not Set') }}<br>
+            <strong>TFTP Directory:</strong> {{ tftp_directory | default('/default/path') }}<br>
+            <strong>Date:</strong> {{ DTG_local | default('Unknown Date') }}</p>
+
+            <hr>
+
+            <h3>Bell Bay</h3>
+            {% set bell_hosts = backup_results | dict2items | selectattr('key', 'match', '^BEL') | list %}
+            {% if bell_hosts | length == 0 %}
+              <p>No Bell Bay switches in backup results.</p>
+            {% else %}
+              {% for item in bell_hosts %}
+                <p><strong>{{ item.key }}:</strong><br>
+                {% if item.value is succeeded or (item.value.failed == false) %}
+                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
+                {% else %}
+                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
+                {% endif %}
+                </p>
+              {% endfor %}
+              <p>
+                <strong>✅ Successes:</strong> {{ bell_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
+                <strong>❌ Failures:</strong> {{ bell_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
+              </p>
+            {% endif %}
+
+            <hr>
+
+            <h3>Tarpeena</h3>
+            {% set tarp_hosts = backup_results | dict2items | selectattr('key', 'match', '^TAR') | list %}
+            {% if tarp_hosts | length == 0 %}
+              <p>No Tarpeena switches in backup results.</p>
+            {% else %}
+              {% for item in tarp_hosts %}
+                <p><strong>{{ item.key }}:</strong><br>
+                {% if item.value is succeeded or (item.value.failed == false) %}
+                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
+                {% else %}
+                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
+                {% endif %}
+                </p>
+              {% endfor %}
+              <p>
+                <strong>✅ Successes:</strong> {{ tarp_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
+                <strong>❌ Failures:</strong> {{ tarp_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
+              </p>
+            {% endif %}
+
+            <hr>
+
+            <h3>Other Sites</h3>
+            {% set other_hosts = backup_results | dict2items 
+              | rejectattr('key', 'match', '^BEL') 
+              | rejectattr('key', 'match', '^TAR') 
+              | list %}
+            {% if other_hosts | length == 0 %}
+              <p>No other site switches in backup results.</p>
+            {% else %}
+              {% for item in other_hosts %}
+                <p><strong>{{ item.key }}:</strong><br>
+                {% if item.value is succeeded or (item.value.failed == false) %}
+                  ✅ Successful — Attempts: {{ item.value.attempts | default('N/A') }}
+                {% else %}
+                  ❌ Failed<br><pre>{{ item.value | to_nice_json }}</pre>
+                {% endif %}
+                </p>
+              {% endfor %}
+              <p>
+                <strong>✅ Successes:</strong> {{ other_hosts | selectattr('value.failed', 'equalto', false) | list | length }}<br>
+                <strong>❌ Failures:</strong> {{ other_hosts | selectattr('value.failed', 'equalto', true) | list | length }}
+              </p>
+            {% endif %}
+          </body>
+          </html>
